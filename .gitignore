@@ -46,3 +46,4 @@ Thumbs.db
 # ── Misc ──
 *.log
 *.tmp
+.vastai_state
