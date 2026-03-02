@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ── */
+* { box-sizing: border-box; }
+
+body {
+  @apply text-xl md:text-2xl; /* Increased base font size for projector legibility */
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+
+/* ── Slide shell ── */
+.slide {
+  @apply w-screen h-screen flex flex-col px-16 py-8 md:px-24 md:py-12 pb-24 md:pb-24 relative overflow-y-auto overflow-x-hidden bg-white text-slate-900;
+}
+
+.slide-title {
+  @apply text-5xl md:text-6xl font-black tracking-tight mb-4 text-black uppercase;
+}
+
+.slide-subtitle {
+  @apply text-2xl md:text-3xl font-medium text-slate-700 mb-8 max-w-4xl border-l-4 border-accent pl-4;
+}
+
+/* ── High-Contrast Card ── */
+.glass {
+  @apply rounded-xl border-2 border-slate-900 bg-white p-6 transition-transform hover:-translate-y-1 shadow-[4px_4px_0_0_rgba(15,23,42,1)];
+}
+.glass-no-hover {
+  @apply rounded-xl border-2 border-slate-900 bg-white p-6 shadow-[4px_4px_0_0_rgba(15,23,42,1)];
+}
+
+/* ── Data table ── */
+.data-table {
+  @apply w-full text-lg md:text-xl border-collapse border-2 border-slate-900 bg-white rounded-xl overflow-hidden;
+}
+.data-table thead { @apply bg-slate-900 text-white text-left; }
+.data-table th { @apply py-4 px-5 font-bold uppercase tracking-wider border-b-2 border-slate-900; }
+.data-table td { @apply py-4 px-5 border-b-2 border-slate-900 text-slate-900 font-medium; }
+.data-table tbody tr { @apply transition-colors hover:bg-slate-100; }
+
+/* ── Badge ── */
+.badge {
+  @apply inline-flex items-center gap-2 px-3 py-1 border-2 border-slate-900 bg-white text-slate-900 shadow-[2px_2px_0_0_rgba(15,23,42,1)] text-sm md:text-base font-bold uppercase tracking-wider;
+}
+
+/* ── Metric card ── */
+.metric-card {
+  @apply rounded-xl border-2 border-slate-900 bg-white shadow-[4px_4px_0_0_rgba(15,23,42,1)] flex flex-col items-center justify-center gap-2 py-8 px-6;
+}
+.metric-card .value {
+  @apply text-5xl md:text-6xl font-black tabular-nums tracking-tight text-black;
+}
+.metric-card .label {
+  @apply text-lg md:text-xl text-slate-700 font-bold uppercase tracking-widest;
+}
+
+/* ── Interactive image ── */
+.chart-thumb {
+  @apply rounded-xl border-2 border-slate-900 cursor-pointer transition-transform duration-200
+         shadow-[4px_4px_0_0_rgba(15,23,42,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(15,23,42,1)];
+}
+
+/* ── External link button ── */
+.ext-link {
+  @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl text-lg font-bold uppercase
+         border-2 border-slate-900 bg-white text-slate-900 transition-all shadow-[4px_4px_0_0_rgba(15,23,42,1)]
+         hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(15,23,42,1)] hover:bg-slate-50;
+}
+
+/* ── Section header accent bar ── */
+.section-accent {
+  @apply hidden; /* We use a left border on subtitles now instead */
+}
+
+/* ── Print / PDF ── */
+@media print {
+  body { background: white !important; color: black !important; }
+  .slide { page-break-after: always; height: auto; min-height: 100vh; }
+  .no-print { display: none !important; }
+}
+
+/* ── Typography overrrides for existing small text ── */
+.text-xs { font-size: 1rem !important; line-height: 1.5rem !important; }
+.text-sm { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+
+/* ── Stagger animation delays ── */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }

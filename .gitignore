@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────
+#  Myanmar ASR — Git Ignore
+# ─────────────────────────────────────────────
+
+# ── Large Data & Models (stored in MinIO / HuggingFace) ──
+raw/
+processed/
+models/
+logs/
+exports/
+combined/
+
+# ── Installers ──
+Miniforge3-arm64.sh
+
+# ── Node.js ──
+presentation/node_modules/
+presentation/.next/
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+*.egg-info/
+
+# ── Docker volumes / service data ──
+services/label_studio_data/media/
+services/label_studio_data/export/
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Environment ──
+.env
+.env.local
+*.env
+
+# ── Misc ──
+*.log
+*.tmp

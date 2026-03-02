@@ -1,0 +1,65 @@
+{
+  "train": {
+    "samples": 11661,
+    "total_hours": 22.93,
+    "duration_mean": 7.08,
+    "duration_std": 5.03,
+    "duration_min": 1.0,
+    "duration_max": 25.0,
+    "duration_median": 5.29,
+    "text_len_mean": 80.8,
+    "text_len_std": 58.1,
+    "text_len_min": 10,
+    "text_len_max": 382,
+    "rms_mean": 0.07772,
+    "rms_min": 0.000567,
+    "sources": {
+      "openslr80_sp11": 2530,
+      "yodas_my": 1722,
+      "fleurs_sp11": 1482,
+      "openslr80": 2279,
+      "fleurs": 1748,
+      "yodas_my_sp11": 1900
+    }
+  },
+  "validation": {
+    "samples": 319,
+    "total_hours": 0.73,
+    "duration_mean": 8.2,
+    "duration_std": 5.4,
+    "duration_min": 1.4,
+    "duration_max": 23.68,
+    "duration_median": 6.37,
+    "text_len_mean": 87.7,
+    "text_len_std": 58.3,
+    "text_len_min": 14,
+    "text_len_max": 325,
+    "rms_mean": 0.07227,
+    "rms_min": 0.000645,
+    "sources": {
+      "yodas_my": 90,
+      "fleurs": 109,
+      "openslr80": 120
+    }
+  },
+  "test": {
+    "samples": 319,
+    "total_hours": 0.68,
+    "duration_mean": 7.68,
+    "duration_std": 5.35,
+    "duration_min": 1.16,
+    "duration_max": 24.48,
+    "duration_median": 5.8,
+    "text_len_mean": 83.8,
+    "text_len_std": 60.8,
+    "text_len_min": 12,
+    "text_len_max": 294,
+    "rms_mean": 0.08217,
+    "rms_min": 0.000754,
+    "sources": {
+      "fleurs": 93,
+      "yodas_my": 95,
+      "openslr80": 131
+    }
+  }
+}

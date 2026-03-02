@@ -1,0 +1,42 @@
+# ── Docker build ignore ──────────────────────────
+# Keep build context small — only send what's needed
+
+# Data & models (huge)
+raw/
+processed/
+combined/
+exports/
+models/
+logs/
+
+# Node modules (rebuilt in Docker)
+presentation/node_modules/
+presentation/.next/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS files
+.DS_Store
+*.swp
+*~
+
+# Git
+.git/
+.gitignore
+
+# Conda / venv
+*.sh
+!docker/entrypoint.sh
+Miniforge3-arm64.sh
+
+# Services stack (not needed for presentation image)
+services/
+viz/
+
+# Docs
+*.md
+!presentation/README.md

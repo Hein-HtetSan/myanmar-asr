@@ -1,0 +1,165 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────
+#  Myanmar ASR — Local Services Stack
+#  Runs natively on Apple Silicon (arm64)
+# ─────────────────────────────────────────────
+
+services:
+
+  # ── Label Studio (Audio Annotation) ──────────────────
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    platform: linux/arm64        # ← Native ARM for M5
+    container_name: label-studio
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./label_studio_data:/label-studio/data
+      - ../exports:/label-studio/files  # Mount audio exports
+    environment:
+      - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+      - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files
+      - LABEL_STUDIO_USERNAME=admin@myanmar-asr.local
+      - LABEL_STUDIO_PASSWORD=myanmar123
+      - LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true
+      - DJANGO_DB=default
+      - POSTGRE_NAME=labelstudio
+      - POSTGRE_USER=labelstudio
+      - POSTGRE_PASSWORD=labelstudio123
+      - POSTGRE_PORT=5432
+      - POSTGRE_HOST=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Argilla (ML Team Dataset Review) ─────────────────
+  argilla:
+    image: argilla/argilla-quickstart:latest
+    platform: linux/amd64        # ← Runs via Rosetta on M5 (no native arm64 image yet)
+    container_name: argilla
+    ports:
+      - "6900:6900"
+    volumes:
+      - argilla_data:/var/lib/postgresql/data
+      - argilla_elasticsearch:/usr/share/elasticsearch/data
+    environment:
+      - ARGILLA_HOME_PATH=/var/lib/argilla
+      - ARGILLA_SERVER_WORKERS=2
+      - OWNER_USERNAME=argilla
+      - OWNER_PASSWORD=myanmar123
+      - OWNER_API_KEY=myanmar-asr-api-key
+    restart: unless-stopped
+
+  # ── PostgreSQL (Database for Label Studio) ───────────
+  postgres:
+    image: postgres:15-alpine
+    platform: linux/arm64
+    container_name: asr-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=labelstudio
+      - POSTGRES_USER=labelstudio
+      - POSTGRES_PASSWORD=labelstudio123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labelstudio"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── MinIO (S3-compatible local storage for audio + MLflow artifacts) ──
+  minio:
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    platform: linux/arm64
+    container_name: asr-minio
+    ports:
+      - "9002:9000"    # API (host 9002 → container 9000; port 9000 has macOS forwarding issues)
+      - "9001:9001"    # Web Console
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+      - MINIO_ADDRESS=:9000
+      - MINIO_CONSOLE_ADDRESS=:9001
+    command: server /data --address ":9000" --console-address ":9001"
+    restart: unless-stopped
+
+  # ── MinIO Init (create buckets on startup) ──────────
+  minio-init:
+    image: minio/mc:latest
+    platform: linux/arm64
+    container_name: asr-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set local http://minio:9000 minioadmin minioadmin123;
+      mc mb local/mlflow-artifacts --ignore-existing;
+      mc mb local/myanmar-asr-data --ignore-existing;
+      mc anonymous set download local/mlflow-artifacts;
+      echo 'MinIO buckets created';
+      "
+
+  # ── MLflow (Experiment Tracking) ─────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.19.0
+    platform: linux/arm64
+    container_name: asr-mlflow
+    ports:
+      - "5050:5050"
+    volumes:
+      - mlflow_data:/mlflow
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin123
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5050
+        --backend-store-uri sqlite:////mlflow/mlflow.db
+        --default-artifact-root s3://mlflow-artifacts/
+    depends_on:
+      - minio
+    restart: unless-stopped
+
+  # ── Redis (Task queue / caching) ─────────────────────
+  redis:
+    image: redis:7-alpine
+    platform: linux/arm64
+    container_name: asr-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # ── Jupyter Lab (Data exploration) ───────────────────
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    platform: linux/arm64
+    container_name: asr-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ~/myanmar-asr:/home/jovyan/myanmar-asr
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=myanmar123
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  argilla_data:
+  argilla_elasticsearch:
+  minio_data:
+  mlflow_data:
+  redis_data:
+  label_studio_data:
