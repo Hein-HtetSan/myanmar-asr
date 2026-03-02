@@ -141,20 +141,6 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  # ── Jupyter Lab (Data exploration) ───────────────────
-  jupyter:
-    image: jupyter/scipy-notebook:latest
-    platform: linux/arm64
-    container_name: asr-jupyter
-    ports:
-      - "8888:8888"
-    volumes:
-      - ~/myanmar-asr:/home/jovyan/myanmar-asr
-    environment:
-      - JUPYTER_ENABLE_LAB=yes
-      - JUPYTER_TOKEN=myanmar123
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   argilla_data:
