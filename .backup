@@ -1,0 +1,1 @@
+ssh -N -L 8080:localhost:8080 -p <NEW_PORT> root@<NEW_HOST>.vast.ai
