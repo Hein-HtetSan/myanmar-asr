@@ -36,7 +36,7 @@ export default function ThankYouSlide(_props: SlideProps) {
           </motion.div>
 
           <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <a href="https://github.com/heinhtetsan" target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center gap-3 p-6 border-4 border-slate-900 bg-emerald-50 hover:bg-emerald-100 hover:shadow-[6px_6px_0_0_rgba(15,23,42,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all group">
+            <a href="https://github.com/Hein-HtetSan/myanmar-asr" target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center gap-3 p-6 border-4 border-slate-900 bg-emerald-50 hover:bg-emerald-100 hover:shadow-[6px_6px_0_0_rgba(15,23,42,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all group">
               <Github size={40} className="text-emerald-700 group-hover:scale-110 transition-transform" />
               <div className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-wider mt-2">Source Code</div>
               <div className="text-base md:text-lg text-slate-700 font-medium">Dataset, Models & Tools</div>

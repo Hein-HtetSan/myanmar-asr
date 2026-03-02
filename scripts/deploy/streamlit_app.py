@@ -325,7 +325,7 @@ def load_whisper_pipeline(model_id):
         "automatic-speech-recognition",
         model=model_id,
         device=device,
-        torch_dtype=dtype,
+        dtype=dtype,
         generate_kwargs={"language": "my", "task": "transcribe"},
     )
     return pipe
@@ -342,7 +342,7 @@ def load_seamless_pipeline(model_id):
         "automatic-speech-recognition",
         model=model_id,
         device=device,
-        torch_dtype=dtype,
+        dtype=dtype,
         generate_kwargs={"tgt_lang": "mya"},
     )
     return pipe
