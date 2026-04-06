@@ -44,9 +44,6 @@ export default function TitleSlide(_props: SlideProps) {
           <span className="text-slate-800 font-extrabold text-xl">
             Hein Htet San
           </span>
-          <span className="text-slate-800 font-extrabold text-xl">
-            Ye Myat Kyaw
-          </span>
           <span className="text-slate-700">March 2026</span>
         </div>
 

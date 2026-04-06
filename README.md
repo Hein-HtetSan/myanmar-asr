@@ -2,7 +2,7 @@
 
 **Fine-tuning state-of-the-art transformer models for Burmese speech recognition**
 
-> By **Hein Htet San** & **Ye Myat Kyaw** — March 2026
+> By **Hein Htet San** — March 2026
 
 ---
 
