@@ -1,211 +1,37 @@
-# Myanmar Automatic Speech Recognition System
+# Myanmar ASR
 
-**Fine-tuning state-of-the-art transformer models for Burmese speech recognition**
+**Burmese speech recognition research toolkit** · [MIT code license](LICENSE) · [Cite this project](CITATION.cff)
 
-> By **Hein Htet San** — March 2026
+This repository documents a comparative Myanmar ASR study and provides data preparation, fine-tuning, evaluation, and inference code. It compares two Whisper checkpoints and SeamlessM4T v2. The project also includes a compatibility path for a CentOS 7 VPS with CUDA 11.4 and a Tesla K80. Historical results, visualizations, and the slide deck are kept in local versioned archives outside this repository.
 
----
+## Research results
 
-## Overview
+| Model | Pretrained checkpoint | Reported test WER ↓ | Reported test CER ↓ | Training time |
+| --- | --- | ---: | ---: | ---: |
+| Whisper v3 Turbo | [`openai/whisper-large-v3-turbo`](https://huggingface.co/openai/whisper-large-v3-turbo) | 53.50% | 34.78% | 159 min |
+| “Dolphin” (fine-tuned Whisper v2) | [`openai/whisper-large-v2`](https://huggingface.co/openai/whisper-large-v2) | **33.02%** | 28.00% | 335 min |
+| SeamlessM4T v2 Large | [`facebook/seamless-m4t-v2-large`](https://huggingface.co/facebook/seamless-m4t-v2-large) | 49.12% | **13.04%** | 239 min |
 
-Myanmar (Burmese) is a **low-resource language** where commercial ASR systems fail badly — global models produce **WER > 80%** due to complex script (no word boundaries), tonal distinctions, and extremely limited labeled data. This project fine-tunes **three multilingual transformer models** on a curated **54-hour Myanmar speech dataset** and achieves dramatic improvements:
+The test values were entered into [`scripts/viz/presentation_charts.py`](scripts/viz/presentation_charts.py) for the thesis figures; the repository does not include test predictions or the final dataset needed to regenerate them. Exported MLflow metrics, analysis figures, and historical reports are stored locally outside this repository. The best WER and CER belong to different models. WER is sensitive to Burmese word spacing, so both metrics and the text normalization policy matter. See [reproducibility and evidence](docs/REPRODUCIBILITY.md) before comparing or reusing the numbers.
 
-| Metric         | Zero-shot (Baseline) | After Fine-tuning | Improvement |
-| -------------- | -------------------- | ----------------- | ----------- |
-| **WER (best)** | ~100%                | **33.02%**        | ↓ 67 pp     |
-| **CER (best)** | ~88%                 | **13.04%**        | ↓ 75 pp     |
+The original runs used an RTX 4090 with PyTorch 2.5.1, CUDA 12.1, and Transformers 5.2.0. These timings are **not** K80 estimates. The archived training progress report records experiment decisions and intermediate results.
 
-## Models
+## What this project includes
 
-Three architectures were fine-tuned, each with a **frozen encoder** strategy optimized for low-resource settings:
+- Dataset scripts for downloading, filtering, normalizing, augmenting, and exporting Burmese speech from FLEURS, OpenSLR 80, and YODAS.
+- Fine-tuning scripts for Whisper Turbo, Whisper v2, SeamlessM4T v2, and an experimental NeMo Canary path.
+- WER/CER evaluation, MLflow metric export and figure-generation scripts, a FastAPI inference service, and a Streamlit demo.
+- A [CentOS 7 / K80 decision and VPS test runbook](docs/CentOS7_K80_Compatibility_Decision.md).
 
-| Model                    | Params | Approach                 | WER ↓    | CER ↓      | Train Time |
-| ------------------------ | ------ | ------------------------ | -------- | ---------- | ---------- |
-| **Whisper v3 Turbo**     | 809M   | Full fine-tune (distilled 4-layer decoder) | 54.49%   | 36.00%     | 159 min    |
-| **Dolphin (Whisper-v2)** | 1.5B   | Frozen encoder, 32-layer decoder          | **33.02%** | 28.00%     | 335 min    |
-| **SeamlessM4T v2 Large** | 2.3B   | Frozen w2v-BERT 2.0 encoder              | 49.12%   | **13.04%** | 239 min    |
+The source datasets have their own licenses: [FLEURS](https://huggingface.co/datasets/google/fleurs) is CC BY 4.0, [OpenSLR 80](https://openslr.org/80/) is CC BY-SA 4.0, and [YODAS](https://huggingface.co/datasets/espnet/yodas) is CC BY 3.0. Meta's [SeamlessM4T v2 checkpoint](https://huggingface.co/facebook/seamless-m4t-v2-large) is labeled CC BY-NC 4.0. The repository does not redistribute recordings or model weights. See the [data and result provenance note](docs/REPRODUCIBILITY.md).
 
-**Recommendation**: Use **Dolphin** for word-level tasks (best WER) and **SeamlessM4T** for character-level accuracy (best CER).
+## Optional local services
 
-## Dataset
+To run the MLflow, MinIO, Label Studio, Argilla, PostgreSQL, and Redis stack, copy `.env.example` to `.env`, fill in unique credentials, then run `docker compose -f services/docker-compose.yml up -d`. Keep this stack on a trusted local network; its service ports are not configured for public exposure. The slide deck and its Docker bundle are stored locally outside this repository.
 
-| Source                        | Samples   | Notes                              |
-| ----------------------------- | --------- | ---------------------------------- |
-| Google FLEURS (my_mm)         | ~3,000    | Read speech, clean studio audio    |
-| OpenSLR-80                    | ~5,000    | Crowdsourced Myanmar recordings    |
-| YODAS / YouTube               | ~9,000    | Diverse real-world speech          |
-| Speed Augmentation (0.9×/1.1×)| +10,515   | Data augmentation for robustness   |
+## Run inference on a CentOS 7 K80 VPS
 
-**Final splits**: Train 20,814 (~49.5h) · Val 639 (~1.5h) · Test 1,252 (~3.2h) · **Total: 22,705 samples (~54.2h)**
-
-All audio is 16kHz mono WAV. Text normalized to Myanmar Unicode NFC.
-
-### Preprocessing Pipeline
-
-```
-Raw 17,552 samples
-  → Audio validation     (−312 corrupted/unreadable)
-  → Duration filter      (−1,847 too short/long)
-  → Text validation      (−2,215 non-Myanmar/empty)
-  → SNR filter           (−528 low signal-to-noise)
-  → Deduplication        (−351 near-duplicate)
-  → Clean dataset:       12,190 samples
-  → Speed augmentation:  +10,515 samples
-  → Final dataset:       22,705 samples
-```
-
-~30% of raw data removed as low-quality.
-
-## Architecture
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                    Project Architecture                     │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  ┌──────────┐   SSH Tunnel    ┌──────────────────────┐    │
-│  │ Mac M-chip├───────────────►│  Vast.ai RTX 4090    │    │
-│  │ (Local)   │   (autossh)    │  - Training (3 models)│   │
-│  │           │◄───────────────┤  - FastAPI inference  │    │
-│  └─────┬─────┘                └──────────────────────┘    │
-│        │                                                   │
-│  Docker Services (localhost)                               │
-│  ┌─────────────┐  ┌────────────┐  ┌──────────────┐       │
-│  │ MLflow:5050  │  │ MinIO:9001 │  │ Label Studio │       │
-│  │ Experiments  │  │ S3 Storage │  │    :8081     │       │
-│  └─────────────┘  └────────────┘  └──────────────┘       │
-│  ┌─────────────┐  ┌────────────┐  ┌──────────────┐       │
-│  │ Argilla:6900│  │ Redis:6379 │  │ Postgres:5432│       │
-│  │ Data Review │  │ Cache/Queue│  │ Metadata DB  │       │
-│  └─────────────┘  └────────────┘  └──────────────┘       │
-│                                                            │
-│  Presentation Container (:8090)                            │
-│  ┌─────────────────────────────────────┐                  │
-│  │  nginx → /       → Next.js (slides) │                  │
-│  │       → /demo/   → Streamlit (demo) │                  │
-│  └─────────────────────────────────────┘                  │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Quick Start
-
-### Prerequisites
-
-- macOS with Apple Silicon (M1/M2/M3/M4/M5) or Linux
-- Docker Desktop
-- [Miniforge](https://github.com/conda-forge/miniforge) (recommended) or Conda
-
-### 1. Clone & Setup Environment
-
-```bash
-git clone https://github.com/Hein-HtetSan/myanmar-asr.git
-cd myanmar-asr
-
-# Create conda environment
-conda create -n myanmar-asr python=3.11 -y
-conda activate myanmar-asr
-
-# Install dependencies
-pip install -r requirements-demo.txt
-```
-
-### 2. Configure Environment
-
-```bash
-cp .env.example .env
-# Edit .env if you need to change default credentials
-```
-
-### 3. Start Services Stack
-
-```bash
-cd services
-docker compose up -d
-cd ..
-```
-
-This starts: **MLflow** (`:5050`), **MinIO** (`:9001`), **Label Studio** (`:8081`), **Argilla** (`:6900`), **Redis** (`:6379`), **PostgreSQL** (`:5432`).
-
-### 4. Run the Presentation + Demo
-
-```bash
-# Build & run the all-in-one container
-docker compose -f docker-compose.presentation.yml up -d --build
-```
-
-- **Slides**: [http://localhost:8090/](http://localhost:8090/) — Neo-Brutalism Next.js presentation
-- **Demo**: [http://localhost:8090/demo/](http://localhost:8090/demo/) — Interactive Streamlit ASR demo
-
-### 5. (Optional) Cloud Inference via Vast.ai
-
-For GPU-accelerated inference using the models hosted on Vast.ai:
-
-```bash
-# SSH tunnel to Vast.ai instance (FastAPI inference server)
-ssh -N -L 8080:localhost:8080 root@<vast-ai-host> -p <port>
-```
-
-Then select **"☁️ Cloud (Vast.ai)"** in the Streamlit demo sidebar.
-
-## Project Structure
-
-```
-myanmar-asr/
-├── Dockerfile                      # Multi-stage: Next.js + Streamlit + nginx
-├── docker-compose.presentation.yml # Presentation container
-├── requirements-demo.txt           # Python deps (torch CPU, transformers 5.x)
-├── .env.example                    # Environment template
-│
-├── scripts/
-│   ├── deploy/
-│   │   └── streamlit_app.py        # Streamlit demo (local + cloud inference)
-│   ├── training/
-│   │   ├── train_whisper_turbo.py   # Whisper v3 Turbo fine-tuning
-│   │   ├── train_dolphin.py         # Dolphin (Whisper-v2) fine-tuning
-│   │   ├── train_seamless.py        # SeamlessM4T v2 fine-tuning
-│   │   └── train_best.py           # Optimized Whisper variant
-│   ├── analyze_dataset.py          # Dataset statistics & visualization
-│   ├── augment_dataset.py          # Speed augmentation pipeline
-│   ├── combine_datasets.py         # Merge FLEURS + OpenSLR + YODAS
-│   ├── filter_dataset.py           # Quality filtering (SNR, duration, text)
-│   ├── normalize_datasets.py       # Unicode NFC normalization
-│   └── export_nemo_manifest.py     # NeMo format export
-│
-├── presentation/                   # Next.js 15 slides (Neo-Brutalism design)
-│   ├── src/app/page.tsx            # 12-slide presentation
-│   └── package.json                # React 19, Framer Motion, Tailwind
-│
-├── services/
-│   └── docker-compose.yml          # MLflow, MinIO, Label Studio, Argilla, etc.
-│
-├── docker/                         # nginx, supervisord configs
-└── docs/
-    └── Myanmar_ASR_M5_Guide.md     # Full setup guide for Mac M-series
-```
-
-## Training Environment
-
-| Component       | Details                                    |
-| --------------- | ------------------------------------------ |
-| **GPU**         | NVIDIA RTX 4090 (24GB VRAM) via Vast.ai   |
-| **Framework**   | PyTorch 2.5.1 + CUDA 12.1                 |
-| **Library**     | Transformers 5.2.0, Accelerate             |
-| **Tracking**    | MLflow 2.19 + MinIO S3 artifact storage    |
-| **Training**    | ~12.2 hours total across all 3 models      |
-| **Strategy**    | Frozen encoder, cosine LR scheduler, bf16  |
-
-### CentOS 7 / CUDA 11.4 / Tesla K80
-
-The K80 is a Kepler (SM 3.7) GPU with **12 GB per GPU**. Use the native Python
-environment below for GPU work. The presentation Docker image installs CPU
-PyTorch; it does not provide a K80 CUDA runtime. `services/docker-compose.yml`
-now lets Docker select the host architecture, but these services are optional
-for inference and training.
-
-Use an NVIDIA R470 driver that exposes CUDA 11.4, and a Python 3.10 Conda
-environment. The PyTorch wheel bundles CUDA **11.3** libraries; it runs with
-the compatible 11.4 driver. Do not replace it with a CUDA 12 wheel. The K80
-uses float32 here because fp16/bf16 acceleration is unavailable on SM 3.7.
+Use the [VPS runbook](docs/CentOS7_K80_Compatibility_Decision.md#vps-deployment-runbook) for installation, a systemd service template, API requests, and a pass/fail test record. The short version is:
 
 ```bash
 conda create -n myanmar-asr-k80 python=3.10 -y
@@ -214,24 +40,14 @@ python -m pip install 'torch==1.12.1+cu113' --extra-index-url https://download.p
 python -m pip install -r requirements-k80.txt
 python -m pip check
 python scripts/infra/check_k80.py --model openai/whisper-tiny
+SERVE_HOST=127.0.0.1 DEFAULT_MODEL=whisper-small python scripts/deploy/inference_server.py
 ```
 
-The last command downloads a small model and runs one real inference on GPU.
-Without `--model`, it only checks CUDA kernel execution. If it reports that the
-wheel lacks `sm_37`, use a PyTorch build that includes SM 3.7 before running
-the project. Verify each K80 device separately with `CUDA_VISIBLE_DEVICES`.
+The K80 uses float32. The smoke test and a real audio request must pass on the target VPS before calling the deployment verified. For a fine-tuned Whisper Small checkpoint, set `WHISPER_SMALL_PATH` to its `final/` directory. The original large-model training runs are not validated on one 12 GB K80 GPU.
 
-For inference, start the server with Whisper Small or point it at your fine-tuned
-checkpoint. Keep one model loaded per 12 GB device:
+## Reproduce or extend the study
 
-```bash
-DEFAULT_MODEL=whisper-small python scripts/deploy/inference_server.py
-# Or: WHISPER_SMALL_PATH=./models/whisper-small-k80/final DEFAULT_MODEL=whisper-small python scripts/deploy/inference_server.py
-# GET http://localhost:8080/health; POST audio to /transcribe
-```
-
-For a feasible K80 training starting point, provide a Hugging Face `DatasetDict`
-with `train`, `validation`, `test`, `audio`, and `sentence` columns, then run:
+The data scripts expect external audio and generate Hugging Face `DatasetDict` splits with `audio` and `sentence` columns. Supply that dataset and explicit model/output paths to a trainer. For a feasible K80 starting run:
 
 ```bash
 python scripts/training/train_whisper_turbo.py \
@@ -240,48 +56,20 @@ python scripts/training/train_whisper_turbo.py \
   --output_dir ./models/whisper-small-k80
 ```
 
-The script name reflects its original Turbo experiment; `--model_id` selects
-Whisper Small for this run. The 809M–2.3B parameter experiments, NeMo Canary,
-and their published training times are **not validated on a K80**. Full
-float32 fine-tuning of those large models is likely to exceed one 12 GB GPU;
-start with Whisper Small and reduce evaluation or generation load if needed.
+The script name comes from its original Turbo experiment; `--model_id` selects Whisper Small here. Preserve split definitions, preprocessing settings, checkpoint revision, and prediction outputs for any new comparison. The locally archived dataset statistics JSON describes an earlier 12,299-example, 24.34-hour snapshot; the thesis presentation reports a later 22,705-example, 54.2-hour corpus. The later corpus manifest is not committed. See [reproducibility](docs/REPRODUCIBILITY.md) for the distinction.
 
-## Services & Tools
+## Repository map
 
-| Service          | Port  | Purpose                                      |
-| ---------------- | ----- | -------------------------------------------- |
-| **MLflow**       | 5050  | Experiment tracking, model registry           |
-| **MinIO**        | 9001  | S3-compatible storage (models, data, audio)   |
-| **Label Studio** | 8081  | Audio transcription annotation                |
-| **Argilla**      | 6900  | ML-assisted dataset review & validation       |
-| **PostgreSQL**   | 5432  | Label Studio metadata                         |
-| **Redis**        | 6379  | Task queue & caching                          |
-| **Presentation** | 8090  | Next.js slides + Streamlit demo               |
+| Path | Contents |
+| --- | --- |
+| [`scripts/data/`](scripts/data) | Data collection and preparation |
+| [`scripts/training/`](scripts/training) | Model fine-tuning experiments |
+| [`scripts/evaluation/`](scripts/evaluation) | Evaluation and dataset analysis |
+| [`scripts/deploy/`](scripts/deploy) | FastAPI inference and Streamlit demo |
+| [`scripts/infra/`](scripts/infra) | GPU checks, annotation, and Vast.ai helpers |
+| [`scripts/viz/`](scripts/viz) | Metric export and figure-generation code |
+| [`docs/`](docs) | Reproducibility and VPS runbooks |
 
-## Key Findings
+## Contributing, citation, and license
 
-1. **Frozen encoder is critical** for low-resource fine-tuning — prevents catastrophic forgetting of pre-trained audio features
-2. **CER is more appropriate than WER** for Myanmar — the language lacks clear word boundaries, making CER a fairer metric
-3. **Deeper decoders improve WER** — Dolphin's 32-layer decoder significantly outperforms Whisper Turbo's 4-layer distilled decoder
-4. **54 hours of clean data produces competitive results** — careful preprocessing is more valuable than raw data volume
-5. **Speed augmentation (+0.9×/1.1×)** nearly doubled the training set and improved generalization
-
-## Tech Stack
-
-- **Models**: OpenAI Whisper v3 Turbo, Whisper Large-v2 (Dolphin), Meta SeamlessM4T v2
-- **Training**: PyTorch, HuggingFace Transformers, Accelerate
-- **Tracking**: MLflow, MinIO (S3)
-- **Annotation**: Label Studio, Argilla
-- **Frontend**: Next.js 15, React 19, Framer Motion, Tailwind CSS
-- **Demo**: Streamlit, Python
-- **Infra**: Docker, nginx, supervisord, Vast.ai (GPU)
-
-## License
-
-This project is for academic purposes (Master's thesis). Individual datasets and pre-trained models retain their original licenses.
-
----
-
-<p align="center">
-  <b>Myanmar ASR</b> — Advancing speech recognition for the Burmese language 🇲🇲
-</p>
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Cite this software with [CITATION.cff](CITATION.cff), and cite any upstream datasets or models used in your work. Original code and documentation are available under the [MIT license](LICENSE). Dataset and pretrained-model licenses remain with their respective owners.

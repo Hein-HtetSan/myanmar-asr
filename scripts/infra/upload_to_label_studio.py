@@ -12,8 +12,10 @@ from datasets import load_from_disk
 EXPORT_DIR = os.path.expanduser("~/myanmar-asr/exports/audio")
 os.makedirs(EXPORT_DIR, exist_ok=True)
 
-LS_URL = "http://localhost:8080"
-TOKEN = "f28275bebd3cdbafa071687ffbc50d183a40a696"
+LS_URL = os.environ.get("LABEL_STUDIO_URL", "http://localhost:8081")
+TOKEN = os.environ.get("LABEL_STUDIO_API_KEY")
+if not TOKEN:
+    raise SystemExit("Set LABEL_STUDIO_API_KEY before uploading tasks")
 HEADERS = {"Authorization": f"Token {TOKEN}", "Content-Type": "application/json"}
 PROJECT_ID = 1
 

@@ -2,14 +2,19 @@
 Avoids argilla SDK dependency conflicts with numpy/pandas versions.
 """
 import json
+import os
 import requests
 
-ARGILLA_URL = "http://localhost:6900"
+ARGILLA_URL = os.environ.get("ARGILLA_URL", "http://localhost:6900")
+ARGILLA_USERNAME = os.environ.get("ARGILLA_USERNAME")
+ARGILLA_PASSWORD = os.environ.get("ARGILLA_PASSWORD")
+if not ARGILLA_USERNAME or not ARGILLA_PASSWORD:
+    raise SystemExit("Set ARGILLA_USERNAME and ARGILLA_PASSWORD before uploading records")
 
-# Get auth token (admin/12345678 are quickstart defaults)
+# Get auth token
 token_resp = requests.post(
     f"{ARGILLA_URL}/api/security/token",
-    data={"username": "admin", "password": "12345678"},
+    data={"username": ARGILLA_USERNAME, "password": ARGILLA_PASSWORD},
     headers={"Content-Type": "application/x-www-form-urlencoded"},
 )
 token_resp.raise_for_status()

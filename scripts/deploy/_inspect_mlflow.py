@@ -2,8 +2,6 @@
 """Quick script to inspect MLflow experiments/runs/artifacts."""
 import os
 os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://localhost:9002"
-os.environ["AWS_ACCESS_KEY_ID"] = "minioadmin"
-os.environ["AWS_SECRET_ACCESS_KEY"] = "minioadmin123"
 
 from mlflow.tracking import MlflowClient
 

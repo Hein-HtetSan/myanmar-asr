@@ -37,6 +37,7 @@ logger = logging.getLogger("myanmar-asr-server")
 # ── Config ────────────────────────────────────────────
 SAMPLING_RATE = 16000
 SERVE_PORT = int(os.environ.get("SERVE_PORT", "8080"))
+SERVE_HOST = os.environ.get("SERVE_HOST", "0.0.0.0")
 
 # Model registry — maps short names to model configs
 MODEL_REGISTRY = {
@@ -226,4 +227,4 @@ if __name__ == "__main__":
     except Exception as exc:
         logger.warning(f"Could not pre-load {default_model}: {exc}")
 
-    uvicorn.run(app, host="0.0.0.0", port=SERVE_PORT, log_level="info")
+    uvicorn.run(app, host=SERVE_HOST, port=SERVE_PORT, log_level="info")

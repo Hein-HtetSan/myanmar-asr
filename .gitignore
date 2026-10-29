@@ -14,8 +14,6 @@ combined/
 Miniforge3-arm64.sh
 
 # ── Node.js ──
-presentation/node_modules/
-presentation/.next/
 
 # ── Python ──
 __pycache__/
@@ -23,10 +21,19 @@ __pycache__/
 *.pyo
 .ipynb_checkpoints/
 *.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.playwright-cli/
 
 # ── Docker volumes / service data ──
 services/label_studio_data/media/
 services/label_studio_data/export/
+services/label_studio_data/
+results/
+viz/
+presentation/
+docs/*_Training_Progress_Report.md
 
 # ── OS files ──
 .DS_Store
@@ -41,6 +48,7 @@ Thumbs.db
 # ── Environment ──
 .env
 .env.local
+.env.*
 *.env
 
 # ── Misc ──

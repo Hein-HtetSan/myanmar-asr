@@ -17,13 +17,13 @@ services:
     environment:
       - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
       - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files
-      - LABEL_STUDIO_USERNAME=admin@myanmar-asr.local
-      - LABEL_STUDIO_PASSWORD=myanmar123
+      - LABEL_STUDIO_USERNAME=${LABEL_STUDIO_USERNAME:?Set LABEL_STUDIO_USERNAME in .env}
+      - LABEL_STUDIO_PASSWORD=${LABEL_STUDIO_PASSWORD:?Set LABEL_STUDIO_PASSWORD in .env}
       - LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true
       - DJANGO_DB=default
       - POSTGRE_NAME=labelstudio
       - POSTGRE_USER=labelstudio
-      - POSTGRE_PASSWORD=labelstudio123
+      - POSTGRE_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - POSTGRE_PORT=5432
       - POSTGRE_HOST=postgres
     depends_on:
@@ -43,9 +43,9 @@ services:
     environment:
       - ARGILLA_HOME_PATH=/var/lib/argilla
       - ARGILLA_SERVER_WORKERS=2
-      - OWNER_USERNAME=argilla
-      - OWNER_PASSWORD=myanmar123
-      - OWNER_API_KEY=myanmar-asr-api-key
+      - OWNER_USERNAME=${ARGILLA_USERNAME:?Set ARGILLA_USERNAME in .env}
+      - OWNER_PASSWORD=${ARGILLA_PASSWORD:?Set ARGILLA_PASSWORD in .env}
+      - OWNER_API_KEY=${ARGILLA_API_KEY:?Set ARGILLA_API_KEY in .env}
     restart: unless-stopped
 
   # ── PostgreSQL (Database for Label Studio) ───────────
@@ -57,7 +57,7 @@ services:
     environment:
       - POSTGRES_DB=labelstudio
       - POSTGRES_USER=labelstudio
-      - POSTGRES_PASSWORD=labelstudio123
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -77,8 +77,8 @@ services:
     volumes:
       - minio_data:/data
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
       - MINIO_ADDRESS=:9000
       - MINIO_CONSOLE_ADDRESS=:9001
     command: server /data --address ":9000" --console-address ":9001"
@@ -90,13 +90,15 @@ services:
     container_name: asr-minio-init
     depends_on:
       - minio
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
     entrypoint: >
       /bin/sh -c "
       sleep 5;
-      mc alias set local http://minio:9000 minioadmin minioadmin123;
+      mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\";
       mc mb local/mlflow-artifacts --ignore-existing;
       mc mb local/myanmar-asr-data --ignore-existing;
-      mc anonymous set download local/mlflow-artifacts;
       echo 'MinIO buckets created';
       "
 
@@ -110,8 +112,8 @@ services:
       - mlflow_data:/mlflow
     environment:
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin123
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
     command: >
       mlflow server
         --host 0.0.0.0

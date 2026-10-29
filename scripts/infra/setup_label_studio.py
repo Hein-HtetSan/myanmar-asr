@@ -1,7 +1,13 @@
+import os
+
 from label_studio_sdk import Client
 
 # Connect to Label Studio
-ls = Client(url="http://localhost:8080", api_key="f28275bebd3cdbafa071687ffbc50d183a40a696")
+api_key = os.environ.get("LABEL_STUDIO_API_KEY")
+if not api_key:
+    raise SystemExit("Set LABEL_STUDIO_API_KEY before creating the project")
+ls_url = os.environ.get("LABEL_STUDIO_URL", "http://localhost:8081")
+ls = Client(url=ls_url, api_key=api_key)
 
 # Create Myanmar ASR Project
 project = ls.start_project(
@@ -44,4 +50,4 @@ project = ls.start_project(
 )
 
 print(f"✅ Project created: ID={project.id}")
-print(f"   URL: http://localhost:8080/projects/{project.id}/")
+print(f"   URL: {ls_url}/projects/{project.id}/")

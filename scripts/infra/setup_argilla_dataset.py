@@ -2,6 +2,7 @@
 """Create Argilla dataset for Myanmar ASR transcription review with MinIO audio links."""
 
 import json
+import os
 import argilla as rg
 from argilla.client.feedback.schemas.fields import TextField
 from argilla.client.feedback.schemas.questions import (
@@ -11,8 +12,8 @@ from argilla.client.feedback.schemas.questions import (
 from argilla.client.feedback.schemas.records import FeedbackRecord
 from argilla.client.feedback.dataset.local.dataset import FeedbackDataset
 
-ARGILLA_URL = "http://localhost:6900"
-ARGILLA_KEY = "admin.apikey"
+ARGILLA_URL = os.environ.get("ARGILLA_URL", "http://localhost:6900")
+ARGILLA_KEY = os.environ.get("ARGILLA_API_KEY")
 WORKSPACE = "admin"
 MINIO_BASE = "http://localhost:9002/myanmar-asr-data"
 MANIFEST = "combined/train_manifest.jsonl"
@@ -20,6 +21,8 @@ DATASET_NAME = "myanmar-asr-transcription"
 MAX_RECORDS = 500  # Upload a sample for annotation
 
 def main():
+    if not ARGILLA_KEY:
+        raise SystemExit("Set ARGILLA_API_KEY before creating the dataset")
     rg.init(api_url=ARGILLA_URL, api_key=ARGILLA_KEY, workspace=WORKSPACE)
 
     # Define dataset schema

@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this research software, please cite this repository and the upstream datasets and models you use."
+title: "Myanmar ASR: Burmese Speech Recognition Research Toolkit"
+type: software
+authors:
+  - family-names: San
+    given-names: Hein Htet
+repository-code: "https://github.com/Hein-HtetSan/myanmar-asr"
+license: MIT
+keywords:
+  - Burmese
+  - Myanmar
+  - automatic speech recognition
+  - speech recognition

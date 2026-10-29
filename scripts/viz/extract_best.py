@@ -1,6 +1,6 @@
 import json
 
-with open("/Users/heinhtetsan/myanmar-asr/viz/mlflow_metrics.json") as f:
+with open("viz/mlflow_metrics.json") as f:
     data = json.load(f)
 
 for name, d in data.items():

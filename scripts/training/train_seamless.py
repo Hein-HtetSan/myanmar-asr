@@ -34,8 +34,6 @@ from typing import Any, Dict, List
 os.environ["MLFLOW_TRACKING_URI"] = "http://localhost:5050"
 os.environ["MLFLOW_EXPERIMENT_NAME"] = "myanmar-asr-seamless"
 os.environ["MLFLOW_S3_ENDPOINT_URL"] = "http://localhost:9002"
-os.environ["AWS_ACCESS_KEY_ID"] = "minioadmin"
-os.environ["AWS_SECRET_ACCESS_KEY"] = "minioadmin123"
 # NOTE: HF_MLFLOW_LOG_ARTIFACTS disabled — pyfunc.log_model() crashes on older MLflow.
 # Artifacts are logged manually post-training via MlflowClient.log_artifact().
 # os.environ["HF_MLFLOW_LOG_ARTIFACTS"] = "1"

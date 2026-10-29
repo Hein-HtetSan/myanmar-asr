@@ -41,8 +41,6 @@ MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5050")
 
 # MinIO / S3 credentials (needed for MLflow artifact downloads)
 os.environ.setdefault("MLFLOW_S3_ENDPOINT_URL", "http://localhost:9002")
-os.environ.setdefault("AWS_ACCESS_KEY_ID", "minioadmin")
-os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "minioadmin123")
 
 # Project root — works both locally (scripts/deploy/) and in Docker (/app/)
 _PROJECT_ROOT = pathlib.Path(os.environ.get("APP_ROOT", pathlib.Path(__file__).resolve().parent.parent.parent))
