@@ -48,8 +48,7 @@ COPY --from=presentation-builder /build/node_modules ./node_modules
 # ── Copy Streamlit app ───────────────────────────────
 WORKDIR /app
 COPY scripts/deploy/streamlit_app.py /app/streamlit_app.py
-# .vastai_state is optional (only exists locally); use a glob with the dot-docker trick
-COPY .vastai_stat[e] /app/
+# .vastai_state is optional; the app handles a missing file.
 
 # Create directories the Streamlit app expects
 RUN mkdir -p /app/models/mlflow_cache /app/results

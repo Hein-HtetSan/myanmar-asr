@@ -1,8 +1,6 @@
-version: "3.9"
-
 # ─────────────────────────────────────────────
 #  Myanmar ASR — Local Services Stack
-#  Runs natively on Apple Silicon (arm64)
+#  Docker selects each image's native host architecture.
 # ─────────────────────────────────────────────
 
 services:
@@ -10,7 +8,6 @@ services:
   # ── Label Studio (Audio Annotation) ──────────────────
   label-studio:
     image: heartexlabs/label-studio:latest
-    platform: linux/arm64        # ← Native ARM for M5
     container_name: label-studio
     ports:
       - "8081:8080"
@@ -37,7 +34,6 @@ services:
   # ── Argilla (ML Team Dataset Review) ─────────────────
   argilla:
     image: argilla/argilla-quickstart:latest
-    platform: linux/amd64        # ← Runs via Rosetta on M5 (no native arm64 image yet)
     container_name: argilla
     ports:
       - "6900:6900"
@@ -55,7 +51,6 @@ services:
   # ── PostgreSQL (Database for Label Studio) ───────────
   postgres:
     image: postgres:15-alpine
-    platform: linux/arm64
     container_name: asr-postgres
     ports:
       - "5432:5432"
@@ -75,7 +70,6 @@ services:
   # ── MinIO (S3-compatible local storage for audio + MLflow artifacts) ──
   minio:
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
-    platform: linux/arm64
     container_name: asr-minio
     ports:
       - "9002:9000"    # API (host 9002 → container 9000; port 9000 has macOS forwarding issues)
@@ -93,7 +87,6 @@ services:
   # ── MinIO Init (create buckets on startup) ──────────
   minio-init:
     image: minio/mc:latest
-    platform: linux/arm64
     container_name: asr-minio-init
     depends_on:
       - minio
@@ -110,7 +103,6 @@ services:
   # ── MLflow (Experiment Tracking) ─────────────────────
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.19.0
-    platform: linux/arm64
     container_name: asr-mlflow
     ports:
       - "5050:5050"
@@ -133,7 +125,6 @@ services:
   # ── Redis (Task queue / caching) ─────────────────────
   redis:
     image: redis:7-alpine
-    platform: linux/arm64
     container_name: asr-redis
     ports:
       - "6379:6379"

@@ -118,7 +118,7 @@ def main():
     vram = torch.cuda.get_device_properties(0).total_memory / 1e9
     use_bf16 = torch.cuda.get_device_capability(0)[0] >= 8
     print(f"GPU: {gpu} ({vram:.1f} GB)")
-    print(f"  bf16: {'YES' if use_bf16 else 'NO (using fp16)'}")
+    print(f"  bf16: {'YES' if use_bf16 else 'NO'}")
 
     if vram < 20:
         print(f"  WARNING: Canary-1B needs 24GB+ VRAM. You have {vram:.1f}GB.")
@@ -223,7 +223,7 @@ def main():
     val_check = max(1, steps_per_epoch // 2)  # ~2x per epoch
 
     # ── Trainer ───────────────────────────────────────
-    precision = "bf16-mixed" if use_bf16 else "16-mixed"
+    precision = "bf16-mixed" if use_bf16 else ("16-mixed" if torch.cuda.get_device_capability(0)[0] >= 7 else "32-true")
 
     trainer = pl.Trainer(
         devices=1,

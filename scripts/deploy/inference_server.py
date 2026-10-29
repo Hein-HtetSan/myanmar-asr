@@ -40,6 +40,11 @@ SERVE_PORT = int(os.environ.get("SERVE_PORT", "8080"))
 
 # Model registry — maps short names to model configs
 MODEL_REGISTRY = {
+    "whisper-small": {
+        "id": os.environ.get("WHISPER_SMALL_PATH", "openai/whisper-small"),
+        "type": "whisper",
+        "name": "Whisper Small",
+    },
     "whisper-turbo": {
         "id": os.environ.get(
             "WHISPER_TURBO_PATH",
@@ -105,7 +110,8 @@ def _get_pipeline(model_key: str):
     from transformers import pipeline
 
     device = 0 if torch.cuda.is_available() else -1
-    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    dtype = (torch.float16 if device == 0 and torch.cuda.get_device_capability(0)[0] >= 7
+             else torch.float32)
 
     if model_type == "whisper":
         pipe = pipeline(
@@ -169,7 +175,7 @@ def list_models():
 @app.post("/transcribe")
 async def transcribe(
     file: UploadFile = File(...),
-    model: str = Query("whisper-turbo", description="Model key: whisper-turbo, dolphin, seamless, whisper-baseline"),
+    model: str = Query(os.environ.get("DEFAULT_MODEL", "whisper-turbo"), description="Model key: whisper-small, whisper-turbo, dolphin, seamless, whisper-baseline"),
 ):
     """Transcribe an uploaded audio file."""
     if model not in MODEL_REGISTRY:
@@ -214,9 +220,10 @@ if __name__ == "__main__":
         logger.info(f"  Device: {torch.cuda.get_device_name(0)}")
 
     # Pre-load default model
+    default_model = os.environ.get("DEFAULT_MODEL", "whisper-turbo")
     try:
-        _get_pipeline("whisper-turbo")
+        _get_pipeline(default_model)
     except Exception as exc:
-        logger.warning(f"Could not pre-load whisper-turbo: {exc}")
+        logger.warning(f"Could not pre-load {default_model}: {exc}")
 
     uvicorn.run(app, host="0.0.0.0", port=SERVE_PORT, log_level="info")

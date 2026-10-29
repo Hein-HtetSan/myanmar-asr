@@ -300,12 +300,13 @@ def _get_device_and_dtype(model_type: str = "whisper"):
 
     - Whisper / Dolphin → MPS + float32 (works on Apple Silicon)
     - SeamlessM4T → CPU + float32 (MPS causes OverflowError even with fp32)
-    - CUDA always uses fp16 for all models
+    - Kepler and other pre-Volta CUDA GPUs use float32
     """
     import torch
 
     if torch.cuda.is_available():
-        return 0, torch.float16                      # CUDA GPU — fp16 OK
+        dtype = torch.float16 if torch.cuda.get_device_capability(0)[0] >= 7 else torch.float32
+        return 0, dtype
 
     # Apple Silicon — SeamlessM4T is NOT compatible with MPS
     if torch.backends.mps.is_available() and model_type != "seamless":
@@ -317,15 +318,16 @@ def _get_device_and_dtype(model_type: str = "whisper"):
 @st.cache_resource(show_spinner="Loading Whisper model — first run takes a minute…")
 def load_whisper_pipeline(model_id):
     """Load a Whisper ASR pipeline."""
-    from transformers import pipeline
+    from transformers import pipeline, __version__
 
     device, dtype = _get_device_and_dtype("whisper")
+    dtype_key = "dtype" if int(__version__.split(".")[0]) >= 5 else "torch_dtype"
 
     pipe = pipeline(
         "automatic-speech-recognition",
         model=model_id,
         device=device,
-        dtype=dtype,
+        **{dtype_key: dtype},
         generate_kwargs={"language": "my", "task": "transcribe"},
     )
     return pipe
@@ -334,15 +336,16 @@ def load_whisper_pipeline(model_id):
 @st.cache_resource(show_spinner="Loading SeamlessM4T model — first run takes a minute…")
 def load_seamless_pipeline(model_id):
     """Load a SeamlessM4T ASR pipeline — always on CPU (MPS incompatible)."""
-    from transformers import pipeline
+    from transformers import pipeline, __version__
 
     device, dtype = _get_device_and_dtype("seamless")
+    dtype_key = "dtype" if int(__version__.split(".")[0]) >= 5 else "torch_dtype"
 
     pipe = pipeline(
         "automatic-speech-recognition",
         model=model_id,
         device=device,
-        dtype=dtype,
+        **{dtype_key: dtype},
         generate_kwargs={"tgt_lang": "mya"},
     )
     return pipe

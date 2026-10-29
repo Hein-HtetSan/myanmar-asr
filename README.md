@@ -194,6 +194,58 @@ myanmar-asr/
 | **Training**    | ~12.2 hours total across all 3 models      |
 | **Strategy**    | Frozen encoder, cosine LR scheduler, bf16  |
 
+### CentOS 7 / CUDA 11.4 / Tesla K80
+
+The K80 is a Kepler (SM 3.7) GPU with **12 GB per GPU**. Use the native Python
+environment below for GPU work. The presentation Docker image installs CPU
+PyTorch; it does not provide a K80 CUDA runtime. `services/docker-compose.yml`
+now lets Docker select the host architecture, but these services are optional
+for inference and training.
+
+Use an NVIDIA R470 driver that exposes CUDA 11.4, and a Python 3.10 Conda
+environment. The PyTorch wheel bundles CUDA **11.3** libraries; it runs with
+the compatible 11.4 driver. Do not replace it with a CUDA 12 wheel. The K80
+uses float32 here because fp16/bf16 acceleration is unavailable on SM 3.7.
+
+```bash
+conda create -n myanmar-asr-k80 python=3.10 -y
+conda activate myanmar-asr-k80
+python -m pip install 'torch==1.12.1+cu113' --extra-index-url https://download.pytorch.org/whl/cu113
+python -m pip install -r requirements-k80.txt
+python -m pip check
+python scripts/infra/check_k80.py --model openai/whisper-tiny
+```
+
+The last command downloads a small model and runs one real inference on GPU.
+Without `--model`, it only checks CUDA kernel execution. If it reports that the
+wheel lacks `sm_37`, use a PyTorch build that includes SM 3.7 before running
+the project. Verify each K80 device separately with `CUDA_VISIBLE_DEVICES`.
+
+For inference, start the server with Whisper Small or point it at your fine-tuned
+checkpoint. Keep one model loaded per 12 GB device:
+
+```bash
+DEFAULT_MODEL=whisper-small python scripts/deploy/inference_server.py
+# Or: WHISPER_SMALL_PATH=./models/whisper-small-k80/final DEFAULT_MODEL=whisper-small python scripts/deploy/inference_server.py
+# GET http://localhost:8080/health; POST audio to /transcribe
+```
+
+For a feasible K80 training starting point, provide a Hugging Face `DatasetDict`
+with `train`, `validation`, `test`, `audio`, and `sentence` columns, then run:
+
+```bash
+python scripts/training/train_whisper_turbo.py \
+  --model_id openai/whisper-small --batch_size 1 --grad_accum 32 \
+  --freeze_encoder --no_push --dataset_path /path/to/myanmar_asr \
+  --output_dir ./models/whisper-small-k80
+```
+
+The script name reflects its original Turbo experiment; `--model_id` selects
+Whisper Small for this run. The 809M–2.3B parameter experiments, NeMo Canary,
+and their published training times are **not validated on a K80**. Full
+float32 fine-tuning of those large models is likely to exceed one 12 GB GPU;
+start with Whisper Small and reduce evaluation or generation load if needed.
+
 ## Services & Tools
 
 | Service          | Port  | Purpose                                      |

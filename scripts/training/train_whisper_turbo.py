@@ -42,7 +42,6 @@ from mlflow_callback import (
 MODEL_ID       = "openai/whisper-large-v3-turbo"
 DATASET_PATH   = "/workspace/data/myanmar_asr"
 OUTPUT_DIR     = "/workspace/models/whisper-turbo-myanmar"
-LOG_DIR        = "/workspace/logs/whisper-turbo"
 HF_REPO        = "devhnhts/whisper-large-v3-turbo-myanmar"
 SAMPLING_RATE  = 16000
 WANDB_PROJECT  = "myanmar-asr"
@@ -190,7 +189,7 @@ def main():
         # Memory
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
-        fp16=torch.cuda.is_available(),
+        fp16=torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 7,
         bf16=False,
         # Evaluation
         eval_strategy="steps",
@@ -202,9 +201,9 @@ def main():
         predict_with_generate=True,
         generation_max_length=225,
         # Logging
-        logging_dir=LOG_DIR,
+        logging_dir=os.path.join(args.output_dir, "logs"),
         logging_steps=25,
-        report_to=["tensorboard", "mlflow"],
+        report_to=["tensorboard"],
         run_name=WANDB_RUN_NAME,
         # Best model
         load_best_model_at_end=True,
@@ -271,9 +270,9 @@ def main():
     print(f"  Test CER: {test_results['test_cer']:.2f}%")
 
     # Save test results
-    os.makedirs("/workspace/results", exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     import json
-    with open("/workspace/results/whisper_turbo_results.json", "w") as f:
+    with open(os.path.join(args.output_dir, "whisper_turbo_results.json"), "w") as f:
         json.dump(test_results, f, indent=2)
 
     # Log to MLflow

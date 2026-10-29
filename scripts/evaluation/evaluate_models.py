@@ -59,7 +59,7 @@ def evaluate_whisper_model(model_path, test_ds, wer_metric, cer_metric, device=0
             "automatic-speech-recognition",
             model=model_path,
             device=device,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            torch_dtype=torch.float16 if torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 7 else torch.float32,
             generate_kwargs={"language": "my", "task": "transcribe"},
         )
     except Exception as e:
@@ -113,7 +113,7 @@ def evaluate_seamless_model(model_path, test_ds, wer_metric, cer_metric, device=
             "automatic-speech-recognition",
             model=model_path,
             device=device,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            torch_dtype=torch.float16 if torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 7 else torch.float32,
             generate_kwargs={"tgt_lang": "mya"},
         )
     except Exception as e:

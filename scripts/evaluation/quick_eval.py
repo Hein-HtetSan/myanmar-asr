@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Quick evaluation of trained Whisper model on test set."""
 import torch, json, os
-from datasets import load_from_disk
+from datasets import load_from_disk, Audio
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 import evaluate
 
@@ -9,14 +9,16 @@ MODEL_DIR = "/workspace/models/whisper-turbo-myanmar"
 DATA_DIR  = "/workspace/data/myanmar_asr"
 
 print("Loading model...")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = torch.float16 if device == "cuda" and torch.cuda.get_device_capability(0)[0] >= 7 else torch.float32
 processor = WhisperProcessor.from_pretrained(MODEL_DIR)
 model = WhisperForConditionalGeneration.from_pretrained(
-    MODEL_DIR, torch_dtype=torch.float16
-).to("cuda")
+    MODEL_DIR, torch_dtype=dtype
+).to(device)
 model.eval()
 
 print("Loading test set...")
-ds = load_from_disk(DATA_DIR)
+ds = load_from_disk(DATA_DIR).cast_column("audio", Audio(sampling_rate=16000))
 test_ds = ds["test"]
 print(f"  Test samples: {len(test_ds)}")
 
@@ -27,13 +29,14 @@ all_preds = []
 all_refs  = []
 
 print("Evaluating...")
-for i in range(0, len(test_ds), 8):
-    batch = test_ds[i:min(i+8, len(test_ds))]
+batch_size = 1 if device == "cuda" and dtype == torch.float32 else 8
+for i in range(0, len(test_ds), batch_size):
+    batch = test_ds[i:min(i+batch_size, len(test_ds))]
     inputs = processor(
-        batch["audio"], sampling_rate=16000,
+        [audio["array"] for audio in batch["audio"]], sampling_rate=16000,
         return_tensors="pt", padding=True
     )
-    input_features = inputs.input_features.to("cuda", dtype=torch.float16)
+    input_features = inputs.input_features.to(device, dtype=dtype)
     
     with torch.no_grad():
         generated_ids = model.generate(
@@ -44,12 +47,12 @@ for i in range(0, len(test_ds), 8):
         )
     
     preds = processor.batch_decode(generated_ids, skip_special_tokens=True)
-    refs  = batch["text"]
+    refs  = batch["sentence"]
     all_preds.extend(preds)
     all_refs.extend(refs)
     
-    if (i // 8) % 20 == 0:
-        print(f"  Processed {min(i+8, len(test_ds))}/{len(test_ds)}")
+    if (i // batch_size) % 20 == 0:
+        print(f"  Processed {min(i+batch_size, len(test_ds))}/{len(test_ds)}")
 
 wer = 100 * wer_metric.compute(predictions=all_preds, references=all_refs)
 cer = 100 * cer_metric.compute(predictions=all_preds, references=all_refs)

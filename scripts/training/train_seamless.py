@@ -184,7 +184,8 @@ def main():
         vram = torch.cuda.get_device_properties(0).total_memory / 1e9
         use_bf16 = torch.cuda.get_device_capability(0)[0] >= 8
         print(f"GPU: {device_name} ({vram:.1f} GB)")
-        print(f"  bf16: {'YES' if use_bf16 else 'NO (using fp16)'}")
+        print(f"  bf16: {'YES' if use_bf16 else 'NO'}")
+    precision = "bf16" if use_bf16 else "fp16" if torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 7 else "fp32"
 
     # ── Load model ────────────────────────────────────
     print(f"\nLoading {args.model_id}...")
@@ -289,8 +290,8 @@ def main():
         # Memory optimization
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
-        fp16=(not use_bf16 and torch.cuda.is_available()),
-        bf16=use_bf16,
+        fp16=precision == "fp16",
+        bf16=precision == "bf16",
         # Evaluation
         eval_strategy="steps",
         eval_steps=args.eval_steps,
@@ -345,7 +346,7 @@ def main():
     print(f"  Label smoothing     : {args.label_smoothing}")
     print(f"  Epochs (max)        : {args.epochs}")
     print(f"  Early stop patience : {args.patience}")
-    print(f"  Precision           : {'bf16' if use_bf16 else 'fp16'}")
+    print(f"  Precision           : {precision}")
     print(f"  Eval every          : {args.eval_steps} steps")
     print(f"  Total train steps   : ~{total_steps}")
     print(f"{'='*60}\n")
@@ -422,7 +423,7 @@ def main():
             "batch_size": args.batch_size,
             "grad_accum": args.grad_accum,
             "epochs": args.epochs,
-            "precision": "bf16" if use_bf16 else "fp16",
+            "precision": precision,
             "freeze_speech_encoder": args.freeze_speech_encoder,
         },
         "dataset_stats": {
@@ -507,7 +508,7 @@ def main():
 - LR: {args.lr} ({args.lr_scheduler}), Warmup: {args.warmup_ratio*100:.0f}%
 - Weight Decay: {args.weight_decay}, Label Smoothing: {args.label_smoothing}
 - Batch: {args.batch_size} x {args.grad_accum} = {args.batch_size * args.grad_accum} effective
-- Precision: {'bf16' if use_bf16 else 'fp16'}
+- Precision: {precision}
 - Eval every {args.eval_steps} steps, Patience: {args.patience}
 
 ## Dataset

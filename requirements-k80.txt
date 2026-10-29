@@ -1,0 +1,22 @@
+# CentOS 7 / Tesla K80 environment. Install torch 1.12.1+cu113 separately first.
+numpy==1.26.4
+transformers==4.46.3
+accelerate==0.34.2
+datasets==2.21.0
+evaluate==0.4.3
+huggingface-hub==0.26.5
+pyarrow==17.0.0
+fsspec==2024.6.1
+librosa==0.10.2.post1
+soundfile==0.12.1
+streamlit==1.39.0
+requests==2.32.3
+boto3==1.35.99
+sentencepiece==0.2.0
+protobuf<5
+jiwer==3.0.5
+mlflow==2.19.0
+tensorboard==2.18.0
+fastapi==0.115.6
+uvicorn==0.34.0
+python-multipart==0.0.20
