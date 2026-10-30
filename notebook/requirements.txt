@@ -1,0 +1,6 @@
+transformers==4.57.1
+accelerate>=1.0
+soundfile>=0.12
+jiwer>=3
+tqdm>=4
+numpy>=1.24
