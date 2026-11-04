@@ -55,3 +55,8 @@ Thumbs.db
 *.log
 *.tmp
 .vastai_state
+
+# Dataset
+dataset/
+notebook/dataset-mapping/*
+!notebook/dataset-mapping/README.md
