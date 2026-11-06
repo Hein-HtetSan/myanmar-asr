@@ -60,3 +60,8 @@ Thumbs.db
 dataset/
 notebook/dataset-mapping/*
 !notebook/dataset-mapping/README.md
+notebook/whisper-small/run/checkpoint-*/
+notebook/whisper-small/run/best_model/
+notebook/whisper-small/run_full/
+notebook/whisper-small/run_all_quick/
+notebook/whisper-small/run_all_full/
