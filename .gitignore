@@ -65,3 +65,4 @@ notebook/whisper-small/run/best_model/
 notebook/whisper-small/run_full/
 notebook/whisper-small/run_all_quick/
 notebook/whisper-small/run_all_full/
+notebook/whisper-small/cache
