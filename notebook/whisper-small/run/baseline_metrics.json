@@ -1,9 +1,9 @@
 {
   "baseline_loss": 2.3270010948181152,
-  "baseline_model_preparation_time": 0.0028,
+  "baseline_model_preparation_time": 0.0031,
   "baseline_cer_no_space": 264.5273899033298,
   "baseline_cer_raw": 299.14257716805486,
-  "baseline_runtime": 139.4568,
-  "baseline_samples_per_second": 0.452,
-  "baseline_steps_per_second": 0.229
+  "baseline_runtime": 148.0336,
+  "baseline_samples_per_second": 0.426,
+  "baseline_steps_per_second": 0.216
 }
