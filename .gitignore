@@ -22,6 +22,7 @@ __pycache__/
 .ipynb_checkpoints/
 *.egg-info/
 .venv/
+.venv-training/
 venv/
 .pytest_cache/
 .playwright-cli/
@@ -69,3 +70,4 @@ notebook/whisper-small/run_full/
 notebook/whisper-small/run_all_quick/
 notebook/whisper-small/run_all_full/
 notebook/whisper-small/cache
+notebook/runs/

@@ -7,12 +7,13 @@ Then builds HuggingFace DatasetDict from the saved files.
 """
 
 import os
+import io
 import json
 import time
 import numpy as np
 import soundfile as sf
 from pathlib import Path
-from datasets import load_dataset, Dataset, DatasetDict, Audio
+from datasets import load_dataset, Dataset, DatasetDict, Audio, Features, Value
 
 TARGET_HOURS = 30.0
 MAX_SAMPLES  = 15_000
@@ -47,13 +48,17 @@ if META_PATH.exists():
         print(f"Need {TARGET_HOURS - existing_dur/3600:.1f}h more, resuming download...")
 
 print(f"Downloading VOA Myanmar — target {TARGET_HOURS}h, max {MAX_SAMPLES} samples")
+print("VOA is audio-only: transcripts must be supplied before supervised ASR training.")
 print("=" * 60)
 
 ds_stream = load_dataset(
     "freococo/voa_myanmar_asr_audio_1",
-    trust_remote_code=True,
     streaming=True,
 )
+# Keep MP3 bytes encoded; SoundFile decodes them without TorchCodec.
+stream_features = Features(dict(ds_stream["train"].features))
+stream_features["mp3"] = {"bytes": Value("binary"), "path": Value("string")}
+ds_stream["train"] = ds_stream["train"].cast(stream_features)
 
 meta_file = open(META_PATH, "a" if existing_count > 0 else "w")
 count = existing_count
@@ -63,6 +68,8 @@ skip = existing_count  # Skip already-downloaded samples
 t0 = time.time()
 
 for i, ex in enumerate(ds_stream["train"]):
+    if total_dur / 3600 >= TARGET_HOURS or count >= MAX_SAMPLES:
+        break
     if i < skip:
         continue
     
@@ -83,9 +90,13 @@ for i, ex in enumerate(ds_stream["train"]):
             errors += 1
             continue
         
-        arr = audio_data.get("array")
-        sr = audio_data.get("sampling_rate", 16000)
-        if arr is None or len(arr) == 0:
+        encoded = audio_data.get("bytes")
+        if not encoded:
+            errors += 1
+            continue
+        arr, sr = sf.read(io.BytesIO(encoded), dtype="float32", always_2d=True)
+        arr = arr.mean(axis=1)
+        if len(arr) == 0:
             errors += 1
             continue
         

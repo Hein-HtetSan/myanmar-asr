@@ -36,9 +36,9 @@ The shared dataset schema is `audio`, `sentence`, `source`, `speaker_id`, and `l
 
 ## Script reference
 
-- `download_fleurs.py`: downloads `google/fleurs`, configuration `my_mm`, to `raw/fleurs_my_mm/` as a saved Hugging Face dataset. This is a different format from the local WAV/TSV layout above. It does not produce the normalized `raw/fleurs_my_mm_hf/` expected by the combiner; normalize its schema and save to that path before combining. Do not mix the two layouts in one directory.
-- `download_commonvoice.py`: despite its filename, downloads YODAS `espnet/yodas`, configuration `my000`, normalizes it, and creates 90/5/5 splits under `raw/common_voice_my/`. Run it before combining if you want that source included.
-- `download_voa.py`: streams VOA audio, writes WAVs and metadata under `raw/`, and builds `raw/voa_myanmar_hf/`. Its configured limits are 30 hours or 15,000 samples; actual output depends on available data.
+- `download_fleurs.py`: downloads `google/fleurs`, configuration `my_mm`, to `raw/fleurs_my_mm/` as a saved Hugging Face dataset. Prints split counts without decoding audio, so the download summary does not require TorchCodec. This is a different format from the local WAV/TSV layout above. It does not produce the normalized `raw/fleurs_my_mm_hf/` expected by the combiner; normalize its schema and save to that path before combining. Do not mix the two layouts in one directory.
+- `download_commonvoice.py`: despite its filename, downloads YODAS `espnet/yodas`, subset `my000`, directly from its audio archives and transcript files using `huggingface_hub`. It does not execute `yodas.py` or use `trust_remote_code`. Pairs audio/transcript IDs, normalizes the schema, and creates deterministic 90/5/5 utterance splits under `raw/common_voice_my/`. Downloads and summaries do not decode audio or require TorchCodec; later audio processing may. The `speaker_id` field contains an utterance ID, not a verified speaker identity; these splits do not ensure speaker/video separation. Run it before combining if you want that source included.
+- `download_voa.py`: streams encoded VOA MP3s, decodes with SoundFile, writes 16 kHz mono WAVs and metadata under `raw/`, and builds `raw/voa_myanmar_hf/`. It does not require TorchCodec for downloading. Its configured limits are 30 hours or 15,000 samples; actual output depends on available data. This source is audio-only: `sentence` values remain empty until labels are supplied. Do not use it for supervised training or WER/CER evaluation without reviewed transcripts.
 - `pseudo_label_voa.py`: uses Whisper medium to write resumable machine transcriptions to `raw/voa_myanmar_meta_labeled.jsonl`. Review its device selection before running outside Apple Silicon. This is a separate output; running it does not automatically rebuild the combined dataset with those labels.
 - `normalize_datasets.py`: defines normalization helpers; running the file alone does not write a dataset.
 - `build_local_datasets.py`: builds normalized datasets from the WAV/TSV layout above.
@@ -58,6 +58,18 @@ python scripts/data/analyze_dataset.py combined/myanmar_asr_50h_clean
 python scripts/data/augment_dataset.py
 python scripts/data/export_manifest.py
 ```
+
+## Combine downloads with the original audio-data mappings
+
+`build_combined_catalog.py` reads the original `audio-data/asr_work/*.csv` mappings, downloaded FLEURS, YODAS, and VOA data. It measures audio headers, hashes encoded audio, preserves source split assignments, and writes a combined CSV catalog and detailed report without duplicating recordings:
+
+```sh
+python scripts/data/build_combined_catalog.py --audio-data-root /path/to/audio-data
+```
+
+Default output is `combined/myanmar_asr_all/`, including `all.csv`, curated supervised splits, duration-only Whisper views, `unlabeled.csv`, `excluded.csv`, `summary.json`, and `README.md`. Existing output is never overwritten; use `--output-dir` for another snapshot. The `audio_data/` and `raw/` symlinks must continue to resolve to their source directories. The catalog combines audio references and metadata, not copied WAVs or an embedded Hugging Face DatasetDict. Its Python `read_audio` helper handles both file paths and embedded dataset audio. See the generated README for usage, exact measurements, curation rules, and speaker/video overlap limitations.
+
+VOA remains unlabeled. Synthetic speech and alternate audio copies excluded by the original mappings are not added. This catalog does not download OpenSLR; it includes the sources already present in the configured inputs.
 
 ## Using the Whisper Small notebook
 
