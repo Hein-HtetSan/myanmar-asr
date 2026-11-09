@@ -32,6 +32,9 @@ services/label_studio_data/export/
 services/label_studio_data/
 results/
 viz/
+!scripts/viz/
+scripts/viz/*
+!scripts/viz/README.md
 presentation/
 docs/*_Training_Progress_Report.md
 
