@@ -26,7 +26,15 @@ Training uses a GPU batch size of 1 with 16 gradient accumulation steps. Evaluat
 
 ## Resume after a power cut
 
-Keep the output folder on disk. After power returns, reopen Jupyter, keep the same `QUICK_RUN` setting, and run the notebook from the top. The training cell reuses saved baseline metrics and resumes automatically from the newest checkpoint with the expected files and a valid trainer state. If power was lost during a save, it tries an older checkpoint. Work since the last completed checkpoint must be repeated. The new all-source folders keep these checkpoints separate from earlier UCSY-only runs.
+Keep the output folder on disk. After power returns, reopen Jupyter, keep the same `QUICK_RUN` setting, and run the notebook from the top. The training cell reuses saved baseline metrics and checks checkpoints from newest to oldest. It checks required files, trainer step, and PyTorch archive integrity, including CRC checks. This reads the resume archives from disk and may take a while for large checkpoints. A damaged checkpoint is reported and skipped. If none passes, the cell stops instead of silently starting over. These checks detect truncated archives, but cannot guarantee every saved state will load. Work since the last usable checkpoint must be repeated. The new all-source folders keep these checkpoints separate from earlier UCSY-only runs.
+
+If resuming `checkpoint-1700` fails with `PytorchStreamReader ... failed finding central directory` while loading `optimizer.pt`:
+
+1. Keep the existing checkpoint folders; do not delete `optimizer.pt` to bypass the error. It is needed for an exact training resume.
+2. Use the updated notebook, restart the kernel, and rerun from the top with the same settings. Confirm the training cell prints `Skipping checkpoint-1700` and resumes from an older checkpoint, such as `checkpoint-1650` if it passes the checks. Resuming at 1650 repeats the 50 optimizer steps after that save.
+3. If all checkpoints fail, restore a backup. The step-1700 model weights may still be usable for a separate weights-only training run, but that resets optimizer/scheduler state and is not an exact resume.
+
+An interrupted save is one possible cause; the error alone does not prove it. Check free space on the Windows drive containing `RUN_DIR` before training again.
 
 Keep the same dataset, model, and training settings when resuming. For a new experiment, use a new output folder. Checkpoints are local files and are ignored by Git; copying this repository alone does not back them up.
 
