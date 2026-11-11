@@ -33,7 +33,7 @@ run("curl -s -o /dev/null -w 'HTTP %{http_code}' http://localhost:5050/ || echo 
 
 print("\n=== Python packages ===")
 run("python3 --version")
-import torch, transformers, datasets
+import torch, transformers, datasets as datasets
 print(f"torch: {torch.__version__}, CUDA: {torch.cuda.is_available()}")
 print(f"transformers: {transformers.__version__}")
 print(f"datasets: {datasets.__version__}")
