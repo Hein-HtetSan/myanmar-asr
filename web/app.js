@@ -1,6 +1,7 @@
 'use strict';
 const byId = id => document.getElementById(id);
 let runs = [];
+let previousSnapshot = null;
 const number = value => typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString(undefined, {maximumFractionDigits: 4}) : 'Not logged';
 function textElement(tag, text) { const element = document.createElement(tag); element.textContent = text; return element; }
 function fillRows(target, rows) {
@@ -40,15 +41,23 @@ function renderRun() {
 }
 byId('run-select').addEventListener('change',renderRun);
 byId('metric-select').addEventListener('change',()=>drawHistory(runs[Number(byId('run-select').value)]));
-(async()=>{
+async function loadResults() {
   try {
-    const response=await fetch('results.json'); if(!response.ok) throw new Error('Results request failed');
+    const response=await fetch('results.json', {cache: 'no-store'}); if(!response.ok) throw new Error('Results request failed');
     const data=await response.json(); if(data.schema_version!==1 || !Array.isArray(data.runs)) throw new Error('Unsupported results schema');
+    const snapshot=JSON.stringify(data);
+    if(snapshot===previousSnapshot) { if(runs.length) byId('message').hidden=true; return; }
+    const selectedRun=runs[Number(byId('run-select').value)]?.run_id;
+    previousSnapshot=snapshot;
     runs=data.runs;
     byId('updated').textContent=data.generated_at ? `Snapshot: ${new Date(data.generated_at).toISOString()} · ${runs.length} selected runs` : 'Awaiting the first reviewed MLflow export';
-    if(!runs.length) { byId('message').textContent='No experiment results have been published yet. The automatic workflow publishes completed runs after their result artifacts are available. No placeholder accuracy scores are shown.'; return; }
+    if(!runs.length) { byId('run').hidden=true; byId('message').hidden=false; byId('run-select').disabled=true; byId('message').textContent='No experiment results have been published yet. The automatic workflow publishes completed runs after their result artifacts are available. No placeholder accuracy scores are shown.'; return; }
     byId('message').hidden=true;
     byId('run-select').replaceChildren(...runs.map((run,index)=>{const option=textElement('option',run.name);option.value=index;return option;}));
+    const selectedIndex=runs.findIndex(run=>run.run_id===selectedRun);
+    if(selectedIndex>=0) byId('run-select').value=selectedIndex;
     byId('run-select').disabled=false; renderRun();
   } catch(error) { byId('message').hidden=false; byId('message').textContent='The results snapshot could not be loaded. Please retry or download the JSON to inspect it.'; }
-})();
+}
+loadResults();
+setInterval(loadResults, 60000);

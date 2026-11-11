@@ -1,4 +1,4 @@
-"""Export explicitly selected MLflow runs to a public research summary."""
+"""Export completed MLflow runs and numeric result artifacts to the public web summary."""
 import argparse
 from datetime import datetime, timezone
 import json
@@ -41,7 +41,9 @@ def numeric_results(value):
     if isinstance(value, dict):
         return {key: numeric_results(item) for key, item in value.items()
                 if isinstance(item, (dict, int, float)) and not isinstance(item, bool)}
-    return finite(value)
+    if isinstance(value, list):
+        return [numeric_results(item) for item in value if isinstance(item, (dict, list, int, float)) and not isinstance(item, bool)]
+    return finite(value) if isinstance(value, (int, float)) else None
 
 
 def completed_runs(client, experiment_name):
@@ -105,7 +107,7 @@ def export_results(client, run_ids, output, commit=None, completed_only=False):
                      or 'metrics/test_metrics.json' in run['result_artifacts'])]
     snapshot = {'schema_version': 1, 'generated_at': datetime.now(timezone.utc).isoformat(),
                 'source_commit': commit, 'runs': runs,
-                'artifact_policy': 'Inventory only. Raw artifacts, text, audio, logs and weights are not published.'}
+                'artifact_policy': 'Artifact inventory plus numeric aggregate result JSON. Raw text, audio, logs and weights are not published.'}
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix('.tmp')

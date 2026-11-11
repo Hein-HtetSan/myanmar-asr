@@ -40,4 +40,4 @@ For the older CentOS 7 / K80 environment and its float32 inference requirements,
 
 ## Research results export and deployment
 
-`export_mlflow_results.py` exports reviewed run IDs from your existing MLflow tracker to `web/results.json`. `build_research_site.py` packages only the public static site for Vercel. See [the site and CI/CD setup](../../web/README.md) for exported fields, credentials, runner connectivity, and publishing controls. Inference stays on its separate GPU/API host.
+`export_mlflow_results.py` discovers completed runs in your configured MLflow experiment (or filters by optional run IDs), reading numeric aggregate result JSON from its artifacts, and exports them to `web/results.json`. `build_research_site.py` packages only the public static site for Vercel. See [the site and CI/CD setup](../../web/README.md) for exported fields, credentials, runner connectivity, and publishing controls. Inference stays on its separate GPU/API host.

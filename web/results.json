@@ -3,5 +3,5 @@
   "generated_at": null,
   "source_commit": null,
   "runs": [],
-  "artifact_policy": "Inventory only. Raw artifacts, text, audio, logs and weights are not published."
+  "artifact_policy": "Artifact inventory plus numeric aggregate result JSON. Raw text, audio, logs and weights are not published."
 }

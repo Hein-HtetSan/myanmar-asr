@@ -1,50 +1,55 @@
-# Public research results
+# Research web app
 
-This buildless HTML/CSS/JS page shows selected MLflow runs: latest metrics, complete logged metric histories, an allowlisted training configuration, manifest hashes, and the recursively listed artifact inventory. The browser reads only `results.json`; it never connects to MLflow or receives tracker credentials. The committed snapshot is empty until real runs are exported. No historical or sample accuracy is substituted.
+`web/` is the static public research page. It reads `results.json`, generated from MLflow tracking and `metrics/*.json` artifacts. It displays completed runs, numeric result JSON, metric histories, training settings, manifest hashes, and the recursive artifact inventory. The browser has no MLflow credentials. The committed JSON is an empty initial state, not sample accuracy.
 
-## What MLflow already stores
+## Automatic updates after experiments
 
-Whisper Small logs `configuration/run.json`, `configuration/environment.json`, `dataset/catalog_summary.json`, `dataset/long_labels.csv`, `metrics/training_metrics.json`, and, after full evaluation, `metrics/test_metrics.json` and five prediction CSVs under `predictions/`. Training/validation metric histories are MLflow records rather than separate log files. Local `run_config.json`, `training_metrics.json`, `test_metrics.json` and `mlflow_run_id.txt` remain under the run directory.
+`.github/workflows/research-results.yml` checks MLflow every five minutes, on main pushes, and on manual dispatch. It discovers all `FINISHED` runs in `MLFLOW_EXPERIMENT_NAME` (default `myanmar-asr-notebooks`), across all result pages. You do not need to add new run IDs after training.
 
-Other notebooks may use different artifact names. The exporter lists every file recursively, exports all metric histories, and reads `configuration/run.json` when present. Missing configuration is shown explicitly. It does not invent training logs, download every artifact, or imply that listed artifacts are public download links.
+Full notebook runs are published only after `metrics/test_metrics.json` exists, since notebook training and test evaluation use separate tracking contexts. Quick runs may publish once finished with `quick_run: true`. Runs without `configuration/run.json`, failed runs, and running runs are omitted. Every model notebook in this repository writes the expected configuration and test-result artifacts. Legacy runs need the corresponding artifacts before automatic publication.
 
-## Export a snapshot locally
+The exporter downloads aggregate JSON artifacts under `metrics/`, reads the allowlisted configuration from `configuration/run.json`, fetches metric histories, and lists all artifacts. It writes `web/results.json` atomically, then packages only the page and public JSON into `.vercel/output`. The deploy job publishes that bundle to Vercel. A content fingerprint skips redeployment when the page and completed-run data are unchanged; export timestamps alone do not trigger a new deployment. A cache entry is saved only after successful deployment.
 
-Use a separate environment with `mlflow-skinny==2.19.0`. Set `MLFLOW_TRACKING_URI` to your existing tracker and `MLFLOW_RUN_IDS` to a comma-separated list of run IDs you have reviewed for public release. On POSIX:
+Updates are automatic snapshots rather than instant webhooks. GitHub can delay scheduled jobs, and scheduling starts after the workflow is on the repository's default branch. Open pages check the published JSON every minute and retain the selected run when it is still present. Manually dispatch **Publish research results** to request an earlier refresh. The previous deployment stays available if export or deployment fails.
+
+## Configure GitHub Actions
+
+Set repository Actions **variables**:
+
+- `MLFLOW_EXPORT_ENABLED=true`: enable automatic discovery/export.
+- `VERCEL_DEPLOY_ENABLED=true`: enable production deployment after checks/export succeed.
+- `MLFLOW_EXPERIMENT_NAME`: optional experiment container name; defaults to `myanmar-asr-notebooks`.
+- `MLFLOW_RUN_IDS`: optional comma-separated run allowlist; leave unset to include every completed eligible run in the configured experiment.
+- `MLFLOW_RUNNER`: optional dedicated runner label; defaults to `ubuntu-latest`.
+
+Set Actions **secrets**:
+
+- `MLFLOW_TRACKING_URI`: existing tracker URL reachable from the export runner.
+- `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`, or `MLFLOW_TRACKING_TOKEN`, when required.
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: target hosting project credentials and IDs.
+
+The deploy job uses the `production` environment. Repository secrets work; production environment secrets may be used for Vercel too. GitHub-hosted runners cannot reach your laptop's `localhost:5050`. Use a tracker reachable from the runner or a dedicated self-hosted runner on your trusted network with an appropriate tracker URL. The export flags default off until configured; missing credentials then fail visibly.
+
+Disable Vercel's independent Git auto-deployment for this project so it cannot bypass the MLflow export. The workflow uploads the public bundle as the `web` Actions artifact for 30 days and deploys it with `vercel deploy --prebuilt --prod`. No GPU, Python server, Docker stack, or MLflow credentials run inside the public Vercel page. The CLI currently uses `vercel@latest`; pin a verified version if required by your policy. If you change the Vercel target project, delete the `research-published-*` Actions cache entries or change the page to force a fresh deployment.
+
+## Run locally
+
+Install `mlflow-skinny==2.19.0` in a separate environment, set the tracker URL, and run from the repository root:
 
 ```sh
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5050
-export MLFLOW_RUN_IDS=YOUR_32_CHARACTER_RUN_ID
+export MLFLOW_EXPERIMENT_NAME=myanmar-asr-notebooks
 python scripts/deploy/export_mlflow_results.py
 python scripts/deploy/build_research_site.py
 python -m http.server 8765 --directory .vercel/output/static
 ```
 
-On PowerShell, set the variables using `$env:MLFLOW_TRACKING_URI = "..."` and `$env:MLFLOW_RUN_IDS = "..."`, then run the same Python commands. An export failure preserves the previous JSON and fails the command. Export after test evaluation finishes to include all held-out scores; partially completed/running runs are labeled using their MLflow status. Re-exporting refreshes the snapshot.
+For PowerShell, set `$env:MLFLOW_TRACKING_URI = "..."` and `$env:MLFLOW_EXPERIMENT_NAME = "..."`, then run the same Python commands. `--run-ids` can optionally restrict the export; those runs still must be completed and have the required artifacts.
 
-Public output includes run ID/name/status/times, numeric metrics, histories, selected training settings and hashes, and artifact filenames/sizes. It excludes arbitrary params/tags, environment details, local paths, tracker URLs, raw artifact contents, transcripts, audio and weights. Review run names and artifact filenames too: they become public. The MLflow service retains the complete originals.
+## Published and retained records
 
-## GitHub Actions and Vercel
+MLflow retains full original artifacts. The public export contains run ID/name/status/times, numeric aggregate results, metric histories, allowlisted training configuration and hashes, and artifact paths/sizes. It excludes arbitrary params/tags, environment records, tracker credentials/URLs, local paths, raw transcripts, recordings, logs and weights. Run names and artifact filenames are public; keep sensitive material out of them. No missing score is inferred.
 
-`.github/workflows/ci.yml` validates Python/tests, site JavaScript/build, and both Docker Compose files on pushes and pull requests. `.github/workflows/research-results.yml` runs checks on main pushes and manual dispatch, then exports/builds and deploys when enabled. Deployment checks run before secrets are used. Pull requests cannot trigger the publishing workflow.
+Whisper Small writes `configuration/run.json`, `configuration/environment.json`, `dataset/catalog_summary.json`, `dataset/long_labels.csv`, `metrics/training_metrics.json`, and, after full evaluation, `metrics/test_metrics.json` plus five prediction CSVs under `predictions/`. Other notebooks use equivalent configuration with separate training/validation metric JSONs. Local run directories also keep their own configuration, metrics, checkpoints and saved run ID. Tracking metric histories are records, not automatically generated console-log files.
 
-Add repository Actions **variables**:
-
-- `MLFLOW_EXPORT_ENABLED`: `true` enables the export job.
-- `MLFLOW_RUN_IDS`: comma-separated, reviewed run IDs; no automatic publication of every experiment.
-- `VERCEL_DEPLOY_ENABLED`: `true` enables the production deployment after a successful export.
-- `MLFLOW_RUNNER`: optional runner label; defaults to `ubuntu-latest`.
-
-Add Actions **secrets**:
-
-- `MLFLOW_TRACKING_URI`: tracker address reachable from the export runner.
-- `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`, or `MLFLOW_TRACKING_TOKEN`, if your tracker requires them.
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: credentials and IDs for the Vercel project hosting this page. Repository secrets work for the production environment; environment secrets may also be used by the deploy job.
-
-A GitHub-hosted runner cannot reach your laptop's `localhost:5050`. Use an authenticated tracker reachable by the runner, or set `MLFLOW_RUNNER` to a dedicated self-hosted runner label on your trusted network and supply its reachable tracker URL. GitHub runner installation/configuration is external to this repository.
-
-The export job uploads only the public `.vercel/output` bundle as the `web` GitHub artifact, retained for 30 days. The deployment job downloads that exact bundle and runs `vercel deploy --prebuilt --prod`. The Vercel project does not need Python, GPUs, Docker, model weights or access to MLflow. CLI installation currently follows `vercel@latest`; pin a validated version if your deployment policy requires it.
-
-Disable Vercel's separate automatic Git deployments for this project if GitHub Actions owns publication; otherwise its independent build can bypass the selected-run export. Trigger **Publish research results** manually after training to refresh results without changing code. Changing a variable alone does not trigger a deployment. Export/hosting flags default off until configured; missing credentials fail visibly once enabled. No deployment has been executed by this code change.
-
-The Vercel format follows [Build Output API v3](https://vercel.com/docs/build-output-api/configuration) and [prebuilt deployments](https://vercel.com/docs/cli/deploy). MLflow records are read using the [tracking client](https://mlflow.org/docs/2.19.0/python_api/mlflow.client.html). See [research provenance](../docs/REPRODUCIBILITY.md) and [citation](../CITATION.cff).
+See [provenance](../docs/REPRODUCIBILITY.md), [citation](../CITATION.cff), [Vercel Build Output API](https://vercel.com/docs/build-output-api/configuration), [MLflow tracking client](https://mlflow.org/docs/2.19.0/python_api/mlflow.client.html), and [GitHub scheduled workflow behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule).

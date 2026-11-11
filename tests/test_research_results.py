@@ -100,6 +100,30 @@ class ResearchResultsTest(unittest.TestCase):
             export_results(FakeClient(), [RUN_ID], output, completed_only=True)
             self.assertEqual(json.loads(output.read_text())['runs'], [])
 
+    def test_quick_run_publishes_when_finished_without_test_results(self):
+        class QuickClient(FakeClient):
+            def download_artifacts(self, run_id, artifact, directory):
+                path = Path(super().download_artifacts(run_id, artifact, directory))
+                data = json.loads(path.read_text())
+                data['quick_run'] = True
+                path.write_text(json.dumps(data))
+                return str(path)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'results.json'
+            export_results(QuickClient(), [RUN_ID], output, completed_only=True)
+            self.assertEqual(len(json.loads(output.read_text())['runs']), 1)
+
+    def test_running_run_is_not_published(self):
+        class RunningClient(FakeClient):
+            def get_run(self, run_id):
+                run = super().get_run(run_id)
+                run.info.status = 'RUNNING'
+                return run
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'results.json'
+            export_results(RunningClient(), [RUN_ID], output, completed_only=True)
+            self.assertEqual(json.loads(output.read_text())['runs'], [])
+
     def test_completed_run_discovery_reads_all_pages(self):
         class Page(list):
             pass

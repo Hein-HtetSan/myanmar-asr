@@ -14,7 +14,7 @@ For a reproducible contribution, preserve the model/repository commit, manifest 
 
 ## Published experiment page
 
-The [research results page](web/README.md) displays selected MLflow runs, metrics, histories, training configuration, manifest hashes, and an artifact inventory. GitHub Actions can export a reviewed snapshot and deploy it to Vercel after checks pass. Follow the guide to configure the tracker, run IDs, and deployment secrets. Raw artifacts and credentials stay off the public page.
+The [research results page](web/README.md) displays completed MLflow runs, aggregate result JSON from tracking artifacts, metric histories, training configuration, manifest hashes, and an artifact inventory. GitHub Actions checks for completed runs every five minutes and deploys changed snapshots to Vercel after checks pass. Follow the guide to configure the tracker, experiment name, and deployment secrets. Raw artifacts and credentials stay off the public page.
 
 ## Research results
 
