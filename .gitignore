@@ -79,3 +79,9 @@ notebook/runs/
 # All local Whisper Small experiments and caches stay out of source control.
 notebook/whisper-small/run*/
 combined.zip
+
+# Generated research deployment output
+.vercel/
+deployment-url.txt
+
+.research-publication/

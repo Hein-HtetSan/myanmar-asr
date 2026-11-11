@@ -12,6 +12,10 @@ The 2026-11-09 curated catalog contains **94.190 hours total, including 64.147 l
 
 For a reproducible contribution, preserve the model/repository commit, manifest hashes, run configuration, and held-out predictions. Cite [this project](CITATION.cff) and the upstream datasets/models. No new Whisper Small accuracy result is claimed here.
 
+## Published experiment page
+
+The [research results page](web/README.md) displays selected MLflow runs, metrics, histories, training configuration, manifest hashes, and an artifact inventory. GitHub Actions can export a reviewed snapshot and deploy it to Vercel after checks pass. Follow the guide to configure the tracker, run IDs, and deployment secrets. Raw artifacts and credentials stay off the public page.
+
 ## Research results
 
 | Model | Pretrained checkpoint | Reported test WER ↓ | Reported test CER ↓ | Training time |

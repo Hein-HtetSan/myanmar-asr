@@ -1,0 +1,129 @@
+name: Publish research results
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "3-59/5 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-results-production
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install soundfile
+      - run: python -m unittest discover -s tests -v
+      - run: node --check web/app.js
+      - run: python scripts/deploy/build_research_site.py
+
+  export:
+    needs: checks
+    if: vars.MLFLOW_EXPORT_ENABLED == 'true'
+    runs-on: ${{ vars.MLFLOW_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    outputs:
+      digest: ${{ steps.fingerprint.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install mlflow-skinny==2.19.0
+      - name: Export completed experiment results
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_RUN_IDS: ${{ vars.MLFLOW_RUN_IDS }}
+          MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME || 'myanmar-asr-notebooks' }}
+        run: |
+          test -n "$MLFLOW_TRACKING_URI" || { echo 'Configure the MLFLOW_TRACKING_URI secret'; exit 1; }
+          python scripts/deploy/export_mlflow_results.py
+      - name: Fingerprint public snapshot and page
+        id: fingerprint
+        run: |
+          python - <<'PYCODE'
+          import hashlib, json, os
+          from pathlib import Path
+          digest = hashlib.sha256()
+          for name in ('index.html', 'styles.css', 'app.js', 'results.json'):
+              path = Path('web') / name
+              content = path.read_bytes()
+              if name == 'results.json':
+                  data = json.loads(content)
+                  data.pop('generated_at', None)
+                  content = json.dumps(data, sort_keys=True).encode()
+              digest.update(name.encode() + b'\0' + content)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'digest={digest.hexdigest()}\n')
+          PYCODE
+      - name: Build public site bundle
+        run: python scripts/deploy/build_research_site.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: .vercel/output
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    needs: export
+    if: vars.VERCEL_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: .vercel/output
+      - uses: actions/cache/restore@v4
+        id: published
+        with:
+          path: .research-publication
+          key: research-published-${{ needs.export.outputs.digest }}
+          lookup-only: true
+      - name: Install Vercel CLI
+        if: steps.published.outputs.cache-hit != 'true'
+        run: npm install --global vercel@latest
+      - name: Deploy completed experiment snapshot
+        if: steps.published.outputs.cache-hit != 'true'
+        run: |
+          test -n "$VERCEL_TOKEN" && test -n "$VERCEL_ORG_ID" && test -n "$VERCEL_PROJECT_ID" || { echo 'Configure Vercel project secrets'; exit 1; }
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" > deployment-url.txt
+          printf 'Research results: %s\n' "$(cat deployment-url.txt)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Mark successful publication
+        if: steps.published.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .research-publication
+          touch .research-publication/success
+      - uses: actions/cache/save@v4
+        if: steps.published.outputs.cache-hit != 'true'
+        with:
+          path: .research-publication
+          key: research-published-${{ needs.export.outputs.digest }}

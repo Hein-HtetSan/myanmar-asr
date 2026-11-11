@@ -37,3 +37,7 @@ The demo supports local/cloud inference, uploaded or recorded audio, model compa
 `_inspect_mlflow.py` is a diagnostic helper that lists experiments, runs, and artifacts; inspect its tracking configuration before running.
 
 For the older CentOS 7 / K80 environment and its float32 inference requirements, follow the [deployment runbook](../../docs/CentOS7_K80_Compatibility_Decision.md).
+
+## Research results export and deployment
+
+`export_mlflow_results.py` exports reviewed run IDs from your existing MLflow tracker to `web/results.json`. `build_research_site.py` packages only the public static site for Vercel. See [the site and CI/CD setup](../../web/README.md) for exported fields, credentials, runner connectivity, and publishing controls. Inference stays on its separate GPU/API host.

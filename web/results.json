@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "generated_at": null,
+  "source_commit": null,
+  "runs": [],
+  "artifact_policy": "Inventory only. Raw artifacts, text, audio, logs and weights are not published."
+}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Myanmar ASR — Research results</title>
+  <meta name="description" content="Reproducible Burmese speech recognition experiments: training metrics, model configuration and artifact inventories exported from MLflow.">
+  <link rel="stylesheet" href="styles.css"><script src="app.js" defer></script>
+</head>
+<body>
+<header><a class="brand" href="./">MYANMAR ASR <span>/ RESEARCH</span></a><a href="https://github.com/Hein-HtetSan/myanmar-asr">Source & citation ↗</a></header>
+<main>
+  <section class="intro"><p class="eyebrow">BURMESE SPEECH RECOGNITION · EXPERIMENT RECORD</p><h1>Results you can<br>trace to a run.</h1><p class="lede">Explore training metrics, checkpoint settings, and artifact inventories from completed MLflow experiments.</p><p id="updated" class="muted">Loading published snapshot…</p><a class="button" href="results.json" download>Download results JSON ↓</a></section>
+  <section class="context" aria-label="Research context"><div><strong>04</strong><p>Labeled sources<br>ASR · UCSY · FLEURS · YODAS</p></div><div><strong>05</strong><p>Held-out test views<br>Reported separately</p></div><div><strong>CER</strong><p>Validation selection<br>Whitespace removed</p></div></section>
+  <section aria-labelledby="experiments"><div class="section-heading"><h2 id="experiments">Published experiments</h2><label>Run <select id="run-select" disabled><option>No published runs</option></select></label></div><p id="message" role="status">Loading results…</p><div id="run" hidden>
+    <div class="run-heading"><div><p class="eyebrow" id="run-status"></p><h3 id="run-name"></h3><code id="run-id"></code></div></div>
+    <div id="metrics" class="metrics"></div>
+    <div class="section-heading"><h3>Metric history</h3><label>Metric <select id="metric-select"></select></label></div><p class="muted">Values are logged by the run. Error rates are percentages; lower is better. Step zero may include pretrained baseline evaluation.</p><div id="chart" class="chart"></div><details><summary>View metric points</summary><div class="table-wrap"><table><thead><tr><th>Step</th><th>Value</th><th>Time (UTC)</th></tr></thead><tbody id="history"></tbody></table></div></details>
+    <details><summary>Result JSON from MLflow artifacts</summary><pre id="result-artifacts"></pre></details>
+    <details><summary>Training configuration & manifest hashes</summary><pre id="config"></pre></details>
+    <details><summary id="artifact-heading">Artifact inventory</summary><p class="muted">This lists files in MLflow. File contents, transcripts, raw logs and weights are not served by this page.</p><div class="table-wrap"><table><thead><tr><th>Artifact</th><th>Bytes</th></tr></thead><tbody id="artifacts"></tbody></table></div></details>
+  </div></section>
+  <section class="notes"><h2>Read the evidence with its limits.</h2><p>Full training uses eligible labeled training clips while keeping validation and five test views held out. VOA is unlabeled and excluded from supervised training. Clips beyond 30 seconds and overlong training labels are excluded rather than truncated.</p><p>WER depends on Myanmar word spacing. Raw CER retains whitespace; no-space CER removes it. These metrics retain punctuation and use NFC normalization. YODAS video overlap and uncertain UCSY speaker identities prevent claims of speaker- or video-disjoint evaluation.</p><p>This page reads an exported JSON snapshot of MLflow tracking and result artifacts, refreshed automatically after completed runs are detected. Completed runs from the configured MLflow experiment are published automatically. Historical thesis scores use different data and scoring; no score is inferred when a run has not logged it.</p><a href="https://github.com/Hein-HtetSan/myanmar-asr/blob/main/docs/REPRODUCIBILITY.md">Provenance & reproducibility ↗</a></section>
+</main><footer><span>Myanmar ASR · Research software</span><a href="https://github.com/Hein-HtetSan/myanmar-asr/blob/main/CITATION.cff">Cite this project and upstream datasets ↗</a></footer>
+</body></html>
