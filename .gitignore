@@ -8,7 +8,11 @@ processed/
 models/
 logs/
 exports/
-combined/
+combined/*
+!combined/README.md
+!combined/myanmar_asr_all/
+combined/myanmar_asr_all/*
+!combined/myanmar_asr_all/README.md
 
 # ── Installers ──
 Miniforge3-arm64.sh
@@ -71,3 +75,7 @@ notebook/whisper-small/run_all_quick/
 notebook/whisper-small/run_all_full/
 notebook/whisper-small/cache
 notebook/runs/
+
+# All local Whisper Small experiments and caches stay out of source control.
+notebook/whisper-small/run*/
+combined.zip

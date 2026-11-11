@@ -1,4 +1,6 @@
-# Myanmar ASR training data
+# Historical Myanmar ASR training mappings
+
+The current [Whisper Small workflow](../whisper-small/README.md) reads `combined/myanmar_asr_all/` directly. This directory documents older local mappings. The `prepare_asr.py` generator mentioned below belongs to the original external audio collection and is not included in this repository. Use [the combined-catalog builder](../../scripts/data/README.md#combine-downloads-with-the-original-audio-data-mappings) for the current workflow.
 
 Generated from the original collections by `python3 prepare_asr.py` in the parent directory. The script uses only Python's standard library and `ffprobe` for WAV variants that Python cannot read. Run it again after source files change. It overwrites the generated CSV and JSON files here; it does not alter source WAVs or workbooks.
 

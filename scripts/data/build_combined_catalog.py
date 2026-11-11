@@ -293,7 +293,7 @@ def write_report(path, summary):
               'waveform, sample_rate = read_audio(row, root)', 'print(waveform.shape, sample_rate, row["text"])', '```', '',
               'Run the example from the repository root with datasets and SoundFile installed. Audio is returned in float32 '
               'at its original sample rate/channel layout. Downmix and resample in your trainer. '
-              'These manifests need the reference-aware reader; the existing Whisper notebook cannot consume them unchanged.', '',
+              'The Whisper Small notebook at notebook/whisper-small/train.ipynb consumes these views directly using the shared reference-aware reader, without a duplicate waveform cache.', '',
               '## Measurement and limitations', '',
               'Durations are measured from audio header frames divided by sample rate, not download progress or filenames. '
               'Totals are summed before rounding; p95 uses the nearest-rank definition. Encoded byte totals count each catalog record '

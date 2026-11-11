@@ -1,5 +1,7 @@
 # Model training
 
+For the current full combined-catalog Whisper Small recipe, start with [the notebook guide](../../notebook/whisper-small/README.md). It reads original audio without a duplicate WAV cache, retains validation/test separation, and saves per-source predictions. The scripts below are separate historical workflows.
+
 Run commands from the repository root. These are GPU training experiments with defaults for a Linux `/workspace` environment. For the separate Windows notebook workflow, see [Whisper Small](../../notebook/whisper-small/README.md).
 
 The Hugging Face trainers require PyTorch, Transformers, datasets, Accelerate, evaluate/jiwer, and their tracking dependencies. They load a saved `DatasetDict` with `train`, `validation`, and `test` splits and `audio`/`sentence` columns. See [dataset preparation](../data/README.md). Canary instead requires NeMo/PyTorch Lightning and audio manifests. Use the [K80 runbook](../../docs/CentOS7_K80_Compatibility_Decision.md) for that older GPU; the large-model defaults are not K80 settings.

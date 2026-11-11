@@ -6,7 +6,7 @@ Three notebooks reproduce the model families used by the training scripts, using
 - [Dolphin / Whisper Large v2](dolphin/train.ipynb): `openai/whisper-large-v2`.
 - [SeamlessM4T v2 Large](seamless/train.ipynb): `facebook/seamless-m4t-v2-large`, speech-to-text only.
 
-The earlier [Whisper Small notebook](whisper-small/README.md) remains a separate workflow. The three new notebooks use [training_common.py](training_common.py) for catalog audio access, collation, scoring, checkpoint validation, and MLflow run management. The historical scripts' default model IDs are preserved; their `/workspace` paths, silent tracking fallbacks, label truncation, and Transformers 5.x assumptions are replaced for this notebook workflow.
+The [Whisper Small notebook](whisper-small/README.md) uses the same combined catalog and shared audio/scoring helpers, defaults to a full run, and tracks metrics and prediction artifacts in the same MLflow experiment. Start there for the smaller model; its setup and outputs are documented separately. The three new notebooks use [training_common.py](training_common.py) for catalog audio access, collation, scoring, checkpoint validation, and MLflow run management. The historical scripts' default model IDs are preserved; their `/workspace` paths, silent tracking fallbacks, label truncation, and Transformers 5.x assumptions are replaced for this notebook workflow.
 
 ## 1. Start Docker MLflow
 

@@ -4,6 +4,14 @@
 
 This repository contains preprocessing, training, evaluation, and inference code. Historical run exports, analysis figures, reports, and the presentation are in versioned local archives outside this repository. It does **not** contain the raw or processed audio, the final Hugging Face `DatasetDict`, pretrained weights, fine-tuned checkpoints, or an MLflow artifact store. A fresh clone can run baseline inference after downloading dependencies and a model; it cannot independently reproduce the reported fine-tuning scores without those inputs.
 
+## Current combined-catalog Whisper Small workflow
+
+[Whisper Small](../notebook/whisper-small/README.md) uses the combined catalog built by `scripts/data/build_combined_catalog.py`, rather than the historical `DatasetDict` below. The 2026-11-09 snapshot has 37,296 curated clips / 94.190 hours, including 26,465 labeled clips / 64.147 hours and 10,831 unlabeled VOA clips / 30.043 hours. Training uses only the curated labeled training duration view and excludes labels beyond the model limit; validation and five named tests remain held out. Full dataset inventory hours are not supervised training hours.
+
+The notebook records manifest hashes, resolved model commit, package versions, hyperparameters, accepted/rejected counts, baseline/final validation scores, and per-test predictions and metrics. Preserve those files with the repository commit and original catalog/audio. It reads file-backed and embedded audio without creating a duplicate waveform cache. Local outputs are ignored by Git. No full training or new quality score is established by updating this recipe.
+
+The catalog audit documents YODAS video overlap and uncertain UCSY speaker identities; do not describe these splits as speaker/video-disjoint. Obtain local ASR/UCSY inputs separately and confirm their usage permissions. A clone includes the [catalog report](../combined/myanmar_asr_all/README.md), not the recordings or generated CSVs. See [data preparation](../scripts/data/README.md) for regeneration.
+
 ## Dataset snapshots
 
 The archived project report describes a later corpus of **22,705 examples / about 54.2 hours** after cleaning and speed augmentation. The archived `viz/dataset_analysis/dataset_stats.json` belongs to an earlier **12,299-example / about 24.34-hour** snapshot (11,661 train, 319 validation, 319 test). These figures must not be treated as the same dataset release. The final corpus manifest and hashes are not present, so the 54.2-hour count is a reported result rather than a count independently verifiable from this repository.

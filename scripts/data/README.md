@@ -73,6 +73,6 @@ VOA remains unlabeled. Synthetic speech and alternate audio copies excluded by t
 
 ## Using the Whisper Small notebook
 
-These outputs are not the CSV manifests consumed by [the Whisper Small notebook](../../notebook/whisper-small/README.md). That notebook expects `sample_id`, `audio`, `source`, `duration_s`, `sha256`, and `text`, with audio paths relative to `dataset/`. An additional exporter and split/leakage checks are needed. `export_manifest.py` does not perform that conversion.
+The [Whisper Small notebook](../../notebook/whisper-small/README.md) now consumes this catalog directly, including embedded Hugging Face audio. It defaults to all eligible labeled training data, reads/resamples audio on demand without a duplicate waveform cache, and evaluates ASR, user-study, UCSY, FLEURS, and YODAS held-out views separately. The older `notebook/dataset-mapping/` manifests remain a separate historical input and are not used by this workflow.
 
 Keep evaluation splits held out, check duplicates and speaker grouping, and review audio/transcript pairs before training. Source availability and older `trust_remote_code` loaders depend on the installed library version; downloads have not been verified by this documentation. See [data provenance](../../docs/REPRODUCIBILITY.md).

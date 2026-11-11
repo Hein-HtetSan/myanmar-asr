@@ -1,43 +1,60 @@
-# Myanmar ASR Whisper Small training notebook
+# Whisper Small: full combined Myanmar ASR dataset
 
-[`train.ipynb`](train.ipynb) fine-tunes `openai/whisper-small` for Myanmar transcription using every source in the Whisper manifests under `notebook/dataset-mapping/`. It trains on `train_whisper.csv`, selects checkpoints with `validation_whisper.csv`, and evaluates `test_asr_whisper.csv`, `test_user_study_whisper.csv`, and `test_ucsy_whisper.csv` separately. Audio paths in those CSVs are relative to `dataset/`. The audio and generated manifests are not included in this repository. See the [dataset mapping notes](../dataset-mapping/README.md) for split definitions.
+[train.ipynb](train.ipynb) fine-tunes `openai/whisper-small` using the combined audio-backed catalog at `combined/myanmar_asr_all/`. It uses local ASR, UCSY, FLEURS, and YODAS training data, selects the best checkpoint on validation no-space CER, and evaluates five held-out test views separately. This is a training recipe; no new accuracy or runtime result is claimed.
 
-## Set up on Windows
+## Prepare the data
 
-1. Start PowerShell in the repository root, with the dataset and manifests in the paths above. Activate the Python environment that Jupyter will use.
-2. Install PyTorch for your GPU in that environment using the [official PyTorch selector](https://pytorch.org/get-started/locally/). Install Jupyter if needed: `python -m pip install jupyterlab ipykernel`.
-3. Make sure `ffmpeg` and `ffprobe` work from PowerShell. Run `jupyter lab` from inside the repository and open `notebook/whisper-small/train.ipynb`.
-4. Run cells from the top. The first code cell installs the remaining notebook packages, including Transformers 4.57.1. Restart the kernel if installation asks you to, then rerun from the top.
+From the repository root, follow [dataset preparation](../../scripts/data/README.md#combine-downloads-with-the-original-audio-data-mappings). Obtain the original ASR/UCSY collections and downloaded saved datasets, then build:
 
-The hardware cell should print `device: cuda` and your GPU name. `Current GPU: 0` means PyTorch selected the first GPU; it does not measure GPU activity. In another PowerShell window, run `nvidia-smi -l 1` to watch utilization, memory, temperature, and power while training.
+```sh
+python scripts/data/build_combined_catalog.py --audio-data-root /path/to/audio-data
+```
 
-## Choose a run
+The builder refuses to overwrite an existing catalog. If it already exists, use that snapshot or choose a new output with `--output-dir` and change `CATALOG_DIR` in the notebook. Keep `audio_data/` and `raw/` links resolvable. On Windows, copy the source directories and use junctions or real directories at those locations. Embedded audio is read directly from the saved Hugging Face datasets; copying CSVs alone is insufficient.
 
-`QUICK_RUN = False` is the default. It uses every clip in the training and validation Whisper manifests that fits Whisper's target-token limit, trains for three epochs, and evaluates all three held-out test manifests after training. The notebook prints the count for each source and split. The `*_whisper.csv` manifests already exclude audio longer than 30 seconds; the notebook reports how many labels exceed the model's token limit.
+The local snapshot generated on 2026-11-09 contains 37,296 curated clips / 94.190 hours, of which 26,465 clips / 64.147 hours are labeled. VOA contributes 10,831 unlabeled clips / 30.043 hours and is excluded from supervised training and scoring. The duration-only Whisper views contain:
 
-For a short pipeline check, set `QUICK_RUN = True`, restart the kernel, and rerun all cells. It selects up to 256 training and 64 validation clips, trains for 20 optimizer steps, and skips the test sets. Quick and full runs use separate output folders:
+- `test_asr_whisper.csv`: 193 clips / 0.532 hours.
+- `test_fleurs_whisper.csv`: 870 clips / 3.717 hours.
+- `test_ucsy_whisper.csv`: 1,171 clips / 1.903 hours.
+- `test_user_study_whisper.csv`: 153 clips / 0.504 hours.
+- `test_yodas_my_whisper.csv`: 129 clips / 0.119 hours.
+- `train_whisper.csv`: 21,805 clips / 50.679 hours.
+- `validation_whisper.csv`: 1,894 clips / 4.084 hours.
 
-| Mode | Output folder | Checkpoint interval |
-| --- | --- | ---: |
-| Quick | `notebook/whisper-small/run_all_quick/` | 5 optimizer steps |
-| Full | `notebook/whisper-small/run_all_full/` | 50 optimizer steps |
+These counts precede the model-specific label-token filter. Audio longer than 30 seconds is excluded, not truncated. Long training/validation labels are recorded in `long_labels.csv`; full test references are retained for inference scoring. “Full” uses all eligible training rows while keeping validation and tests held out.
 
-Training uses a GPU batch size of 1 with 16 gradient accumulation steps. Evaluation uses a batch size of 1. Up to three checkpoints are retained, including the best evaluated checkpoint. Each checkpoint stores model, optimizer, scheduler, and random state so training can resume; keep enough free disk space for several large checkpoints.
+## Install and run
 
-## Resume after a power cut
+Install a GPU-appropriate PyTorch >=2.6 build using the [official PyTorch selector](https://pytorch.org/get-started/locally/), then install the shared requirements in a separate environment. See [the environment instructions](../README.md#2-create-a-separate-jupyter-training-environment) for Windows and POSIX commands.
 
-Keep the output folder on disk. After power returns, reopen Jupyter, keep the same `QUICK_RUN` setting, and run the notebook from the top. The training cell reuses saved baseline metrics and checks checkpoints from newest to oldest. It checks required files, trainer step, and PyTorch archive integrity, including CRC checks. This reads the resume archives from disk and may take a while for large checkpoints. A damaged checkpoint is reported and skipped. If none passes, the cell stops instead of silently starting over. These checks detect truncated archives, but cannot guarantee every saved state will load. Work since the last usable checkpoint must be repeated. The new all-source folders keep these checkpoints separate from earlier UCSY-only runs.
+```sh
+python -m pip install -r notebook/requirements-training.txt
+python -m jupyter lab
+```
 
-If resuming `checkpoint-1700` fails with `PytorchStreamReader ... failed finding central directory` while loading `optimizer.pt`:
+Select that environment's kernel and open `notebook/whisper-small/train.ipynb`. Run cells top to bottom. The first cell installs the same requirements; restart the kernel if packages changed. Whisper Small uses the existing MLflow tracker: set `MLFLOW_TRACKING_URI` before launching Jupyter (default `http://127.0.0.1:5050`). Reuse your running service; see [tracking setup](../README.md#1-start-docker-mlflow) if needed. CUDA uses FP16; MPS/CPU use full precision. A full run is intended for a GPU, and fit/runtime must be checked on your hardware.
 
-1. Keep the existing checkpoint folders; do not delete `optimizer.pt` to bypass the error. It is needed for an exact training resume.
-2. Use the updated notebook, restart the kernel, and rerun from the top with the same settings. Confirm the training cell prints `Skipping checkpoint-1700` and resumes from an older checkpoint, such as `checkpoint-1650` if it passes the checks. Resuming at 1650 repeats the 50 optimizer steps after that save.
-3. If all checkpoints fail, restore a backup. The step-1700 model weights may still be usable for a separate weights-only training run, but that resets optimizer/scheduler state and is not an exact resume.
+`QUICK_RUN = False` is the default: all eligible training/validation clips, three epochs, then all five test views. `True` selects up to 256 train and 64 validation clips using seed `20261030`, trains for 20 optimizer steps, and skips held-out evaluation. Training batch size is one with 16 gradient accumulation steps. Encoder parameters remain trainable.
 
-An interrupted save is one possible cause; the error alone does not prove it. Check free space on the Windows drive containing `RUN_DIR` before training again.
+Audio is downmixed and resampled to 16 kHz on demand using the shared reader in [training_common.py](../training_common.py). No duplicate WAV or feature cache is created. This trades disk usage for repeated decoding/resampling. Model downloads still use Hugging Face's normal cache.
 
-Keep the same dataset, model, and training settings when resuming. For a new experiment, use a new output folder. Checkpoints are local files and are ignored by Git; copying this repository alone does not back them up.
+## Outputs and interruption recovery
 
-After training, the selected model is saved in `best_model/` under the mode's output folder. Full-run metrics and predictions are written to `run_all_full/`, with separate files for `test_asr`, `test_user_study`, and `test_ucsy`.
+Quick outputs go to `run_combined_quick/`; full outputs go to `run_combined_full/`, both beside this README. They are ignored by Git and separate from legacy mapping-only runs. Checkpoints are saved every five quick steps or 50 full steps, retaining up to three including the best evaluated checkpoint. Evaluation occurs every 20 quick steps or 500 full steps.
 
-Checkpointing limits lost work from an outage. It does not fix a CUDA error or a monitor that stays black during training; check the Windows System event log for GPU driver errors before retrying that failure.
+Each run reuses its saved `mlflow_run_id.txt` in the `myanmar-asr-notebooks` experiment. MLflow records training/validation metrics, baseline metrics, run configuration, catalog audit, rejected labels, and full-mode test metrics/predictions. Tracker or artifact-upload failures stop the run visibly. Model weights stay local.
+
+Each run records `run_config.json` (manifest SHA-256, resolved model revision, training arguments, versions and selected counts), `long_labels.csv`, `baseline_metrics.json`, `training_metrics.json`, and `best_model/`. Full runs add `test_metrics.json` and five `test_*_predictions.csv` files with sample IDs, sources, full references and predictions.
+
+After interruption, restart the kernel and rerun with the same settings and catalog. The notebook validates checkpoint archives from newest to oldest, skips damaged saves, and stops if none is usable. Back up outputs separately. A configuration mismatch stops resume; choose a new `RUN_DIR` for changed settings/data. Set `MODEL_REVISION` to the recorded Hub commit SHA for a pinned repeat run. Manifest fingerprints describe metadata; keep original audio and its catalog hashes unchanged too.
+
+No cache or run directory is required in a clone. To start fresh, choose a new output directory. Delete old local caches/runs only after backing up checkpoints and predictions you need.
+
+## Interpret, share, and cite
+
+WER uses whitespace-delimited tokens, raw CER retains spaces, and no-space CER removes whitespace. Scores are percentages; lower is better. Text is normalized with NFC and collapsed whitespace, retaining punctuation. Best-model selection uses validation no-space CER. Compare the pretrained baseline with final validation on the same selected rows; publish each held-out test score separately with predictions and run configuration.
+
+Exact audio duplicates and training/evaluation normalized-text overlap are checked. Existing YODAS video overlap and uncertain UCSY speaker labels mean these are not guaranteed speaker/video-disjoint benchmarks. Evaluation text can repeat across held-out views. Review the catalog's generated audit and listen to representative clips before drawing conclusions. Historical thesis scores use different data/scoring and are not a baseline for this recipe.
+
+See [reproducibility and provenance](../../docs/REPRODUCIBILITY.md), [contribution guidance](../../CONTRIBUTING.md), and [CITATION.cff](../../CITATION.cff). Cite this repository plus each upstream dataset/model used, and report the repository commit, model commit, manifest hashes, exclusions, and scoring policy. Source recordings retain their own licenses; local ASR/UCSY redistribution permissions are not established here.

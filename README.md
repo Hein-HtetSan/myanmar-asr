@@ -4,6 +4,14 @@
 
 This repository documents a comparative Myanmar ASR study and provides data preparation, fine-tuning, evaluation, and inference code. It compares two Whisper checkpoints and SeamlessM4T v2. The project also includes a compatibility path for a CentOS 7 VPS with CUDA 11.4 and a Tesla K80. Historical results, visualizations, and the slide deck are kept in local versioned archives outside this repository.
 
+## Start with Whisper Small on the combined dataset
+
+The [Whisper Small guide](notebook/whisper-small/README.md) provides the full combined-dataset training recipe, Windows/Linux setup, interruption recovery, MLflow tracking, and per-source test evaluation. It uses all eligible labeled training clips from ASR, UCSY, FLEURS, and YODAS, reading original audio on demand without a duplicate waveform cache. Validation and five test views remain held out; unlabeled VOA is reserved for future labeling work.
+
+The 2026-11-09 curated catalog contains **94.190 hours total, including 64.147 labeled hours** before Whisper duration/token filtering. Its Whisper training view has **21,805 clips / 50.679 hours** before the token filter. These are a new dataset snapshot, separate from the historical results below. Build it using [the data preparation guide](scripts/data/README.md#combine-downloads-with-the-original-audio-data-mappings), then open [the notebook](notebook/whisper-small/train.ipynb). See the [catalog report](combined/myanmar_asr_all/README.md) for provenance and limitations. Audio and checkpoints are external inputs; a fresh clone does not include them.
+
+For a reproducible contribution, preserve the model/repository commit, manifest hashes, run configuration, and held-out predictions. Cite [this project](CITATION.cff) and the upstream datasets/models. No new Whisper Small accuracy result is claimed here.
+
 ## Research results
 
 | Model | Pretrained checkpoint | Reported test WER ↓ | Reported test CER ↓ | Training time |
