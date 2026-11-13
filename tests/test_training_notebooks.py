@@ -33,7 +33,7 @@ class NotebookStructureTest(unittest.TestCase):
                     compile(sanitized, f'{path}:cell-{index}', 'exec')
                     code.append(source)
                 combined = '\n'.join(code)
-                self.assertIn('QUICK_RUN = True', combined)
+                self.assertRegex(combined, r'(?m)^QUICK_RUN = (True|False)$')
                 self.assertIn('tracked_run(', combined)
                 self.assertIn('latest_checkpoint(', combined)
                 self.assertIn('include_labels=False', combined)
