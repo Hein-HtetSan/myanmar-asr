@@ -103,6 +103,26 @@ Each stores resumable checkpoints, `best_model/`, `run_config.json`, and `mlflow
 
 After an interruption, keep the same model revision, catalog, settings, and `RUN_LABEL`. Restart and rerun: the training cell chooses the newest checkpoint whose resume archives and model headers pass validation, and reuses the saved MLflow run. Interrupted ZIP saves are skipped. If no checkpoint passes, it stops; validation cannot repair files or prove every optimizer state will load. Work after the latest usable checkpoint is repeated. Use a new `RUN_LABEL` for changed settings or another experiment.
 
+### Power cuts
+
+Besides the evaluated checkpoints, the large-model notebooks save extra resume checkpoints through `ResumeSafetyCallback`: every `SAFETY_SAVE_STEPS` steps, every `SAFETY_SAVE_MINUTES` minutes, and one step before each evaluation (the Trainer evaluates before its scheduled save, and a full validation pass can take over 30 minutes). Every file is flushed to disk after each save. These settings are not part of `run_config.json`, so changing them mid-run does not block resuming. A power cut loses at most the work since the last save plus any evaluation in progress.
+
+Never try to save from a fresh kernel after a crash (`trainer` no longer exists); just rerun from the top.
+
+To resume with nobody at the machine (Windows):
+
+1. BIOS/UEFI: set **Restore on AC Power Loss** (or "AC Back") to **Power On**.
+2. Windows: enable automatic sign-in (`netplwiz`, or Sysinternals Autologon), and set Docker Desktop to start at sign-in.
+3. Register the auto-resume task once, from the repository root:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\infra\autoresume_train.ps1 -Model seamless -Install
+   ```
+
+   At every sign-in it starts Docker and MLflow, then executes the notebook headless until `test_metrics.json` exists, retrying failed attempts. It keeps the PC awake while it runs. Logs and executed notebook copies go to `notebook/runs/autorun/`. Remove the task with `-Uninstall`. Do not run the same notebook in Jupyter at the same time.
+
+A UPS remains the best protection: even a few minutes of battery lets the current save finish.
+
 ## 5. What MLflow records
 
 All three models share the `myanmar-asr-notebooks` experiment, with separate named runs for model, run label, and quick/full mode. The notebook's explicit run context and callback share one run ID.

@@ -11,6 +11,10 @@ python scripts/infra/check_k80.py --model openai/whisper-small
 
 `check_k80.py` checks CUDA execution and optionally loads a Whisper model for an inference smoke test. Follow the [K80 environment runbook](../../docs/CentOS7_K80_Compatibility_Decision.md) for installation and interpretation.
 
+## Unattended training on Windows
+
+`autoresume_train.ps1` runs a large-model training notebook headless and resumes it after power cuts. `-Install` registers a logon Scheduled Task; `-Uninstall` removes it. See [the notebook guide's power-cut section](../../notebook/README.md#power-cuts) for the BIOS and sign-in settings it relies on.
+
 ## Annotation helpers
 
 Start the required services using [the service stack](../../services/docker-compose.yml) and configure credentials in your environment. Helpers read environment variables directly; do not assume they load `.env` automatically.

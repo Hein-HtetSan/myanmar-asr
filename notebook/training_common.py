@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import platform
 import random
+import time
 import unicodedata
 import zipfile
 
@@ -167,26 +168,44 @@ class MLflowMetricsCallback(TrainerCallback):
 
 
 class ResumeSafetyCallback(TrainerCallback):
-    """Save a resumable checkpoint every `every` steps, between evaluations.
+    """Extra resumable checkpoints for machines that lose power often.
 
-    Evaluation runs before the scheduled save, so a crash during a long
-    evaluation loses everything since the previous save. These extra saves
-    shrink that window without changing eval_steps/save_steps, so the saved
-    run configuration (and therefore resuming) is unaffected. After each save
-    the files are flushed to disk so a power cut cannot leave a checkpoint
-    with correct sizes but unwritten (zero-filled) contents.
+    A save is requested when any of these holds:
+    - `every_steps` steps have passed (step multiple);
+    - `every_minutes` minutes have passed since the last save, so slow steps
+      still save often in wall-clock time;
+    - the next step is an evaluation step (`eval_steps`). The Trainer runs
+      evaluation before its scheduled save, so without this a crash during a
+      long evaluation loses everything since the previous save.
+
+    None of this changes eval_steps/save_steps, so the saved run configuration
+    (and therefore resuming) is unaffected, and the values may change mid-run.
+    After each save every file is flushed to disk, so a power cut cannot leave
+    a checkpoint with correct sizes but unwritten (zero-filled) contents.
     """
-    def __init__(self, every):
-        if every < 1:
-            raise ValueError('every must be a positive step count')
-        self.every = every
+    def __init__(self, every_steps, every_minutes=None, eval_steps=None):
+        if every_steps < 1 or (every_minutes is not None and every_minutes <= 0):
+            raise ValueError('save intervals must be positive')
+        self.every_steps = every_steps
+        self.every_seconds = None if every_minutes is None else every_minutes * 60
+        self.eval_steps = eval_steps
+        self.last_save = time.monotonic()
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        self.last_save = time.monotonic()
+        return control
 
     def on_step_end(self, args, state, control, **kwargs):
-        if state.global_step % self.every == 0:
+        step = state.global_step
+        if (step % self.every_steps == 0
+                or (self.eval_steps and (step + 1) % self.eval_steps == 0)
+                or (self.every_seconds is not None
+                    and time.monotonic() - self.last_save >= self.every_seconds)):
             control.should_save = True
         return control
 
     def on_save(self, args, state, control, **kwargs):
+        self.last_save = time.monotonic()
         if not state.is_world_process_zero:
             return control
         path = Path(args.output_dir)/f'checkpoint-{state.global_step}'
@@ -195,6 +214,7 @@ class ResumeSafetyCallback(TrainerCallback):
                 # Windows fsync needs a writable descriptor.
                 with item.open('r+b') as handle:
                     os.fsync(handle.fileno())
+        print(f'Resume checkpoint flushed to disk: {path.name}')
         return control
 
 
