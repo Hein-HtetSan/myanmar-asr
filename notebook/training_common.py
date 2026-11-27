@@ -7,6 +7,7 @@ import importlib.metadata
 import json
 import math
 import numbers
+import os
 from pathlib import Path
 import platform
 import random
@@ -163,6 +164,38 @@ class MLflowMetricsCallback(TrainerCallback):
             metrics['gpu_peak_allocated_gb'] = torch.cuda.max_memory_allocated() / 1024**3
         if metrics:
             mlflow.log_metrics(metrics, step=state.global_step)
+
+
+class ResumeSafetyCallback(TrainerCallback):
+    """Save a resumable checkpoint every `every` steps, between evaluations.
+
+    Evaluation runs before the scheduled save, so a crash during a long
+    evaluation loses everything since the previous save. These extra saves
+    shrink that window without changing eval_steps/save_steps, so the saved
+    run configuration (and therefore resuming) is unaffected. After each save
+    the files are flushed to disk so a power cut cannot leave a checkpoint
+    with correct sizes but unwritten (zero-filled) contents.
+    """
+    def __init__(self, every):
+        if every < 1:
+            raise ValueError('every must be a positive step count')
+        self.every = every
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.global_step % self.every == 0:
+            control.should_save = True
+        return control
+
+    def on_save(self, args, state, control, **kwargs):
+        if not state.is_world_process_zero:
+            return control
+        path = Path(args.output_dir)/f'checkpoint-{state.global_step}'
+        for item in sorted(path.rglob('*')) if path.is_dir() else []:
+            if item.is_file():
+                # Windows fsync needs a writable descriptor.
+                with item.open('r+b') as handle:
+                    os.fsync(handle.fileno())
+        return control
 
 
 class SpeechTrainer(Seq2SeqTrainer):
